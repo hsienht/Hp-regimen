@@ -144,7 +144,8 @@ body{font-family:'PingFang TC','Noto Sans TC','Microsoft JhengHei',sans-serif;ba
 .med-table th,.med-table td{border:1.5px solid #555;padding:9px 13px;text-align:center;vertical-align:middle}
 .med-table thead th{font-weight:700;font-size:15px;background:#fafafa;letter-spacing:1px}
 .col-reg{font-size:14px;font-weight:700;min-width:110px}
-.col-drug{text-align:left!important;font-size:13px;font-weight:500;white-space:nowrap;padding-right:16px!important}
+.col-drug{text-align:left!important;font-size:13px;font-weight:500;padding-right:16px!important}
+.drug-dose{font-size:11px;font-weight:400;color:#666}
 .col-time{min-width:80px}
 .pills-cell{min-height:40px;display:flex;justify-content:center;align-items:center;gap:3px;flex-wrap:wrap;padding:3px 0}
 .phase-hdr td{background:#e8eaf6;font-size:13px;font-weight:700;color:#3f51b5;padding:6px 13px;text-align:left}
@@ -290,13 +291,13 @@ body{font-family:'PingFang TC','Noto Sans TC','Microsoft JhengHei',sans-serif;ba
 
 const DEFAULT_DRUGS = [
   {id:'ppi',      name:'PPI 制酸劑',            subtypes:['Omeprazole 20mg','Esomeprazole 40mg','Lansoprazole 30mg','Rabeprazole 20mg','Pantoprazole 40mg'], shape:'round',  color:'#FFA726',color2:null},
-  {id:'pcab',     name:'PCAB 制酸劑 (需自費)',    subtypes:['Vonoprazan 20mg (Takecab)'],                                                                    shape:'oval',   color:'#FF8A80',color2:null},
-  {id:'bismuth',  name:'KCB 鉍劑',               subtypes:['Bismuth Subcitrate 120mg (De-Nol)'],                                                            shape:'round',  color:'#90A4AE',color2:null},
-  {id:'tetracycline',name:'Tetracycline 抗生素',  subtypes:['Tetracycline HCl 500mg'],                                                                      shape:'capsule',color:'#66BB6A',color2:'#E0E0E0'},
+  {id:'pcab',     name:'PCAB 制酸劑 (需自費)',    subtypes:['Vonoprazan 20mg'],                                                                              shape:'oval',   color:'#FF8A80',color2:null},
+  {id:'bismuth',  name:'KCB 鉍劑',               subtypes:['Bismuth Subcitrate 120mg'],                                                                     shape:'round',  color:'#90A4AE',color2:null},
+  {id:'tetracycline',name:'Tetracycline 抗生素',  subtypes:['Tetracycline 500mg'],                                                                           shape:'capsule',color:'#66BB6A',color2:'#E0E0E0'},
   {id:'metronidazole',name:'Metronidazole 抗生素',subtypes:['Metronidazole 250mg','Metronidazole 500mg'],                                                   shape:'round',  color:'#FF7043',color2:null},
   {id:'amoxicillin',name:'Amoxicillin 抗生素',    subtypes:['Amoxicillin 250mg','Amoxicillin 500mg'],                                                        shape:'capsule',color:'#EF5350',color2:'#BDBDBD'},
-  {id:'clarithromycin',name:'Clarithromycin 抗生素',subtypes:['Clarithromycin 500mg (Klaricid)'],                                                           shape:'round',  color:'#FFD740',color2:null},
-  {id:'levofloxacin',name:'Levofloxacin 抗生素',  subtypes:['Levofloxacin 500mg (Cravit)'],                                                                 shape:'oval',   color:'#80DEEA',color2:null},
+  {id:'clarithromycin',name:'Clarithromycin 抗生素',subtypes:['Clarithromycin 500mg'],                                                                      shape:'round',  color:'#FFD740',color2:null},
+  {id:'levofloxacin',name:'Levofloxacin 抗生素',  subtypes:['Levofloxacin 500mg'],                                                                          shape:'oval',   color:'#80DEEA',color2:null},
   {id:'rifabutin', name:'Rifabutin 抗生素',        subtypes:['Rifabutin 150mg'],                                                                             shape:'capsule',color:'#CE93D8',color2:'#9575CD'},
   {id:'doxycycline',name:'Doxycycline 抗生素',     subtypes:['Doxycycline 100mg'],                                                                           shape:'capsule',color:'#FFB74D',color2:'#FFF176'},
 ];
@@ -306,21 +307,21 @@ const ALL_TS=['breakfast','lunch','dinner','sleep'];
 
 const DEFAULT_PRESETS=[
   {id:'bqt',name:'鉍劑四合一處方',isPhased:false,duration:14,notes:'1. 大便顏色可能暫時變黑灰色 (鉍劑)。\n2. 多喝水，服藥後30分鐘內勿平躺 (四環黴素)。\n3. 避免與乳製品併服 (四環黴素)。',
-   phases:[{drugs:[mkD('ppi',2,1),mkD('bismuth',4,1),mkD('tetracycline',4,1),mkD('metronidazole',4,2)]}]},
+   phases:[{drugs:[mkD('ppi',2,1,null,3),mkD('bismuth',4,1),mkD('tetracycline',4,1),mkD('metronidazole',4,2)]}]},
   {id:'std_triple',name:'非鉍劑三合一處方',isPhased:false,duration:14,notes:'1. 請按時服藥，切勿自行停藥。\n2. 如有嚴重腸胃不適請回診。',
-   phases:[{drugs:[mkD('ppi',2,1),mkD('amoxicillin',2,2,null,1),mkD('clarithromycin',2,1)]}]},
+   phases:[{drugs:[mkD('ppi',2,1,null,3),mkD('amoxicillin',2,2,null,1),mkD('clarithromycin',2,1)]}]},
   {id:'concomitant',name:'非鉍劑四合一處方',isPhased:false,duration:14,notes:'1. 請按時服藥，切勿自行停藥。\n2. 服藥期間嚴禁飲酒 (Metronidazole)。',
-   phases:[{drugs:[mkD('ppi',2,1),mkD('amoxicillin',2,2,null,1),mkD('clarithromycin',2,1),mkD('metronidazole',2,2)]}]},
+   phases:[{drugs:[mkD('ppi',2,1,null,3),mkD('amoxicillin',2,2,null,1),mkD('clarithromycin',2,1),mkD('metronidazole',2,2)]}]},
   {id:'sequential',name:'序列四合一療法 (Sequential)',isPhased:true,phaseDurations:[7,7],notes:'1. 第一階段結束後立即開始第二階段，勿中斷。\n2. 服藥期間嚴禁飲酒 (Metronidazole)。',
-   phases:[{drugs:[mkD('ppi',2,1),mkD('amoxicillin',2,2,null,1)]},{drugs:[mkD('ppi',2,1),mkD('clarithromycin',2,1),mkD('metronidazole',2,2)]}]},
+   phases:[{drugs:[mkD('ppi',2,1,null,3),mkD('amoxicillin',2,2,null,1)]},{drugs:[mkD('ppi',2,1,null,3),mkD('clarithromycin',2,1),mkD('metronidazole',2,2)]}]},
   {id:'hybrid',name:'混合四合一療法 (Hybrid)',isPhased:true,phaseDurations:[7,7],notes:'1. 第一階段結束後立即開始第二階段，勿中斷。\n2. 服藥期間嚴禁飲酒 (Metronidazole)。',
-   phases:[{drugs:[mkD('ppi',2,1),mkD('amoxicillin',2,2,null,1)]},{drugs:[mkD('ppi',2,1),mkD('amoxicillin',2,2,null,1),mkD('clarithromycin',2,1),mkD('metronidazole',2,2)]}]},
+   phases:[{drugs:[mkD('ppi',2,1,null,3),mkD('amoxicillin',2,2,null,1)]},{drugs:[mkD('ppi',2,1,null,3),mkD('amoxicillin',2,2,null,1),mkD('clarithromycin',2,1),mkD('metronidazole',2,2)]}]},
   {id:'rev_hybrid',name:'逆向混合四合一療法 (Reverse Hybrid)',isPhased:true,phaseDurations:[7,7],notes:'1. 第一階段結束後立即開始第二階段，勿中斷。\n2. 服藥期間嚴禁飲酒 (Metronidazole)。',
-   phases:[{drugs:[mkD('ppi',2,1),mkD('amoxicillin',2,2,null,1),mkD('clarithromycin',2,1),mkD('metronidazole',2,2)]},{drugs:[mkD('ppi',2,1),mkD('amoxicillin',2,2,null,1)]}]},
+   phases:[{drugs:[mkD('ppi',2,1,null,3),mkD('amoxicillin',2,2,null,1),mkD('clarithromycin',2,1),mkD('metronidazole',2,2)]},{drugs:[mkD('ppi',2,1,null,3),mkD('amoxicillin',2,2,null,1)]}]},
   {id:'levo_triple',name:'Levofloxacin三合一處方',isPhased:false,duration:14,notes:'1. Levofloxacin 請於早餐前服用。\n2. 避免強烈陽光直射 (光敏感反應)。',
-   phases:[{drugs:[mkD('ppi',2,1),mkD('amoxicillin',2,2,null,1),mkD('levofloxacin',1,1,['breakfast'])]}]},
+   phases:[{drugs:[mkD('ppi',2,1,null,3),mkD('amoxicillin',2,2,null,1),mkD('levofloxacin',1,1,['breakfast'])]}]},
   {id:'rifabutin',name:'Rifabutin三合一處方',isPhased:false,duration:14,notes:'1. Rifabutin 可能使體液（尿液、淚液）變橘色，屬正常現象。',
-   phases:[{drugs:[mkD('ppi',2,1),mkD('amoxicillin',2,2,null,1),mkD('rifabutin',2,1)]}]},
+   phases:[{drugs:[mkD('ppi',2,1,null,3),mkD('amoxicillin',2,2,null,1),mkD('rifabutin',2,1)]}]},
   {id:'hdppi_dual',name:'高劑量PPI二合一處方',isPhased:false,duration:14,notes:'1. 請按時服藥，切勿自行停藥。\n2. 如有嚴重腸胃不適請回診。',
    phases:[{drugs:[mkD('ppi',4,1,ALL_TS,3),mkD('amoxicillin',4,3,ALL_TS)]}]},
   {id:'pcab_dual',name:'PCAB二合一處方',isPhased:false,duration:14,notes:'1. PCAB制酸劑需自費，請詢問費用。\n2. 如對盤尼西林類抗生素過敏，請告知醫師。',
@@ -358,6 +359,11 @@ function savePresets(){localStorage.setItem('hp_presets_v6',JSON.stringify(allPr
   ['tinidazole','furazolidone'].forEach(rmId=>{const i=DRUGS_DB.findIndex(d=>d.id===rmId);if(i!==-1){DRUGS_DB.splice(i,1);dChanged=true;}});
   const amox=DRUGS_DB.find(d=>d.id==='amoxicillin');
   if(amox){const before=amox.subtypes.length;amox.subtypes=amox.subtypes.filter(s=>s!=='Amoxicillin 1000mg');if(amox.subtypes.length!==before)dChanged=true;}
+  // Migrate drug subtype display names (remove brand names)
+  const subtypeRenames={'Vonoprazan 20mg (Takecab)':'Vonoprazan 20mg','Bismuth Subcitrate 120mg (De-Nol)':'Bismuth Subcitrate 120mg','Tetracycline HCl 500mg':'Tetracycline 500mg','Clarithromycin 500mg (Klaricid)':'Clarithromycin 500mg','Levofloxacin 500mg (Cravit)':'Levofloxacin 500mg'};
+  DRUGS_DB.forEach(d=>{if(d.subtypes)d.subtypes=d.subtypes.map(s=>{if(subtypeRenames[s]){dChanged=true;return subtypeRenames[s];}return s;});});
+  // Migrate PPI subtype 0→3 (Omeprazole→Rabeprazole/Pariet) in all saved presets
+  allPresets.forEach(p=>{p.phases.forEach(ph=>{ph.drugs.forEach(d=>{if(d.drugId==='ppi'&&d.subtype===0){d.subtype=3;pChanged=true;}});});});
   if(dChanged)saveDrugs();
 })();
 
@@ -606,6 +612,7 @@ function renderPreview(){
 
   const thead=`<tr><th>療程</th><th>藥物</th>${TIME_SLOTS.map(s=>`<th>${s.label}</th>`).join('')}</tr>`;
   const fmtReg=n=>n.replace(/\s*\(/,'<br>(');
+  const fmtDrug=(e)=>{const db=getDB(e.drugId);const nm=e.customName||db?.name||e.drugId;const dose=db?.subtypes?.[e.subtype];return dose?`${nm}<br><span class="drug-dose">(${dose})</span>`:nm;};
   let tbody='';
 
   if(empty){paper.innerHTML=`<div class="preview-title">幽門桿菌治療 服藥指南</div><div class="empty-hint">請選擇組套或新增藥物</div>`;return;}
@@ -613,10 +620,9 @@ function renderPreview(){
   if(!R.isPhased){
     const drugs=R.phases[0].drugs;
     drugs.forEach((e,i)=>{
-      const nm=e.customName||getDB(e.drugId)?.name||e.drugId;
       const times=e.times||defTimes(e.freq);
       const rc=i===0?`<td class="col-reg" rowspan="${drugs.length}">${fmtReg(name)}</td>`:'';
-      tbody+=`<tr>${rc}<td class="col-drug">${nm}</td>${TIME_SLOTS.map(sl=>times.includes(sl.id)?`<td class="col-time"><div class="pills-cell">${pillsHTML(e.drugId,e.icon,e.pills)}</div></td>`:`<td class="col-time"><div class="pills-cell"></div></td>`).join('')}</tr>`;
+      tbody+=`<tr>${rc}<td class="col-drug">${fmtDrug(e)}</td>${TIME_SLOTS.map(sl=>times.includes(sl.id)?`<td class="col-time"><div class="pills-cell">${pillsHTML(e.drugId,e.icon,e.pills)}</div></td>`:`<td class="col-time"><div class="pills-cell"></div></td>`).join('')}</tr>`;
     });
   }else{
     const pd=R.phaseDurations||[7,7];
@@ -628,9 +634,8 @@ function renderPreview(){
       if(first){tbody+=`<tr class="phase-hdr ${cls}"><td class="col-reg" rowspan="${total}">${fmtReg(name)}</td><td colspan="5">${label}　${pd[pi]} 天</td></tr>`;first=false;}
       else tbody+=`<tr class="phase-hdr ${cls}"><td colspan="5">${label}　${pd[pi]} 天</td></tr>`;
       ph.drugs.forEach(e=>{
-        const nm=e.customName||getDB(e.drugId)?.name||e.drugId;
         const times=e.times||defTimes(e.freq);
-        tbody+=`<tr><td class="col-drug">${nm}</td>${TIME_SLOTS.map(sl=>times.includes(sl.id)?`<td class="col-time"><div class="pills-cell">${pillsHTML(e.drugId,e.icon,e.pills)}</div></td>`:`<td class="col-time"><div class="pills-cell"></div></td>`).join('')}</tr>`;
+        tbody+=`<tr><td class="col-drug">${fmtDrug(e)}</td>${TIME_SLOTS.map(sl=>times.includes(sl.id)?`<td class="col-time"><div class="pills-cell">${pillsHTML(e.drugId,e.icon,e.pills)}</div></td>`:`<td class="col-time"><div class="pills-cell"></div></td>`).join('')}</tr>`;
       });
     });
   }
