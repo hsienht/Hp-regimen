@@ -136,7 +136,7 @@ body{font-family:'PingFang TC','Noto Sans TC','Microsoft JhengHei',sans-serif;ba
 .action-row{display:flex;gap:6px;margin-top:16px}
 
 /* ── Preview ── */
-.preview-panel{flex:1;padding:28px;overflow-y:auto;display:flex;flex-direction:column;align-items:center;height:100vh}
+.preview-panel{flex:1;padding:28px;overflow-y:auto;display:flex;flex-direction:column;align-items:center;height:100vh;position:relative}
 .preview-paper{background:white;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.1);padding:40px 44px;width:100%;max-width:900px}
 .preview-title{text-align:center;font-size:32px;font-weight:300;color:#222;margin-bottom:28px;letter-spacing:3px}
 .empty-hint{text-align:center;color:#bbb;padding:60px 0;font-size:14px}
@@ -145,9 +145,9 @@ body{font-family:'PingFang TC','Noto Sans TC','Microsoft JhengHei',sans-serif;ba
 .med-table thead th{font-weight:700;font-size:15px;background:#fafafa;letter-spacing:1px}
 .col-reg{font-size:14px;font-weight:700;min-width:110px}
 .col-drug{text-align:left!important;font-size:13px;font-weight:500;padding-right:16px!important}
-.drug-dose{font-size:11px;font-weight:400;color:#666}
+.drug-dose{font-size:11px;font-weight:400;color:#666;white-space:nowrap}
 .col-time{min-width:80px}
-.pills-cell{min-height:40px;display:flex;justify-content:center;align-items:center;gap:3px;flex-wrap:wrap;padding:3px 0}
+.pills-cell{min-height:32px;display:flex;justify-content:center;align-items:center;gap:3px;flex-wrap:wrap;padding:3px 0;transform:scale(.8);transform-origin:center center}
 .phase-hdr td{background:#e8eaf6;font-size:13px;font-weight:700;color:#3f51b5;padding:6px 13px;text-align:left}
 .phase-hdr.p2 td{background:#e0f2f1;color:#00695c}
 .notes-sec{margin-top:14px;font-size:12px;line-height:1.9;color:#444}
@@ -183,11 +183,39 @@ body{font-family:'PingFang TC','Noto Sans TC','Microsoft JhengHei',sans-serif;ba
 .dm-deleted{opacity:.5;pointer-events:none}
 .dm-drug-header.deleted .dm-drug-name-input{text-decoration:line-through;color:#e53935}
 
+.drug-nm{white-space:nowrap}
+.notes-title{font-size:12px;font-weight:600;color:#444;margin-bottom:2px}
+.notes-line{font-size:12px;color:#444;line-height:1.8}
+.icon-footnote{font-size:11px;color:#666;margin-top:6px;margin-bottom:10px}
+.special-notes-sec{margin-top:8px}
+.special-notes-title{font-size:12px;font-weight:600;color:#444;margin-bottom:2px}
+.special-notes-line{font-size:12px;color:#444;line-height:1.8;padding-left:4px}
+.se-preview{margin-top:24px;padding-top:16px;border-top:2px dashed #cdd;page-break-inside:avoid}
+.se-preview-hint{font-size:11px;color:#888;font-style:italic;margin-bottom:10px}
+.se-preview-title{font-size:13px;font-weight:700;color:#1a237e;margin-bottom:10px}
+.se-drug-block{margin-bottom:12px}
+.se-drug-hdr{font-size:12px;font-weight:700;color:#333;border-bottom:1px solid #eee;padding-bottom:2px;margin-bottom:4px}
+.se-sub{font-size:11px;font-weight:700;color:#5c6bc0;margin-top:4px;margin-bottom:1px}
+.se-item{font-size:11px;color:#444;line-height:1.7;padding-left:10px}
+.side-effects-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#fff;z-index:1000;overflow-y:auto;padding:36px 44px;box-sizing:border-box}
+.side-effects-overlay.open{display:block}
+.se-ol-header{font-size:20px;font-weight:700;color:#1a237e;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between}
+.se-ol-body .se-drug-block{margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid #eee}
+.se-ol-body .se-drug-hdr{font-size:14px}
+.se-ol-body .se-sub{font-size:12px}
+.se-ol-body .se-item{font-size:12px}
+.dm-note-ta{width:100%;border:1px solid #dde3ef;border-radius:5px;padding:5px 8px;font-size:12px;font-family:inherit;resize:none;overflow:hidden;min-height:34px;line-height:1.6;box-sizing:border-box}
+.dm-note-ta:focus{outline:none;border-color:#5c6bc0}
+.panel-sub-row{display:flex;justify-content:flex-end;margin-bottom:6px}
+
 @media print{
   .input-panel{display:none!important}
   .preview-panel{padding:0;background:white}
   .preview-paper{box-shadow:none;border-radius:0;padding:28px;max-width:100%}
   body{background:white}
+  .se-preview{display:none!important}
+  .side-effects-overlay{display:none!important}
+  .col-drug{min-width:160px}
 }
 </style>
 </head>
@@ -234,6 +262,9 @@ body{font-family:'PingFang TC','Noto Sans TC','Microsoft JhengHei',sans-serif;ba
       <button class="btn btn-sm" id="mgrToggleBtn" onclick="toggleMgr()">組套管理 ▾</button>
     </span>
   </div>
+  <div class="panel-sub-row">
+    <button class="btn btn-sm" onclick="openSeOverlay()">【藥品副作用及注意事項】</button>
+  </div>
 
   <div class="sec-label">療程名稱</div>
   <input id="regimenName" type="text" class="text-input" placeholder="例：鉍劑四合一處方" oninput="onRegimenNameInput()">
@@ -279,6 +310,14 @@ body{font-family:'PingFang TC','Noto Sans TC','Microsoft JhengHei',sans-serif;ba
     <div class="preview-title">幽門桿菌治療 服藥指南</div>
     <div class="empty-hint">請選擇組套或新增藥物</div>
   </div>
+  <!-- Side effects overlay (covers preview panel) -->
+  <div class="side-effects-overlay" id="seOverlay">
+    <div class="se-ol-header">
+      <span>藥品副作用及注意事項</span>
+      <button class="btn btn-sm" onclick="closeSeOverlay()">✕ 關閉</button>
+    </div>
+    <div class="se-ol-body" id="seOverlayContent"></div>
+  </div>
 </div>
 
 </div><!-- .app -->
@@ -290,46 +329,36 @@ body{font-family:'PingFang TC','Noto Sans TC','Microsoft JhengHei',sans-serif;ba
 // ═══════════════════════════════════════════════
 
 const DEFAULT_DRUGS = [
-  {id:'ppi',      name:'PPI 制酸劑',            subtypes:['Omeprazole 20mg','Esomeprazole 40mg','Lansoprazole 30mg','Rabeprazole 20mg','Pantoprazole 40mg'], shape:'round',  color:'#FFA726',color2:null},
-  {id:'pcab',     name:'PCAB 制酸劑 (需自費)',    subtypes:['Vonoprazan 20mg'],                                                                              shape:'oval',   color:'#FF8A80',color2:null},
-  {id:'bismuth',  name:'KCB 鉍劑',               subtypes:['Bismuth Subcitrate 120mg'],                                                                     shape:'round',  color:'#90A4AE',color2:null},
-  {id:'tetracycline',name:'Tetracycline 抗生素',  subtypes:['Tetracycline 500mg'],                                                                           shape:'capsule',color:'#66BB6A',color2:'#E0E0E0'},
-  {id:'metronidazole',name:'Metronidazole 抗生素',subtypes:['Metronidazole 250mg','Metronidazole 500mg'],                                                   shape:'round',  color:'#FF7043',color2:null},
-  {id:'amoxicillin',name:'Amoxicillin 抗生素',    subtypes:['Amoxicillin 250mg','Amoxicillin 500mg'],                                                        shape:'capsule',color:'#EF5350',color2:'#BDBDBD'},
-  {id:'clarithromycin',name:'Clarithromycin 抗生素',subtypes:['Clarithromycin 500mg'],                                                                      shape:'round',  color:'#FFD740',color2:null},
-  {id:'levofloxacin',name:'Levofloxacin 抗生素',  subtypes:['Levofloxacin 500mg'],                                                                          shape:'oval',   color:'#80DEEA',color2:null},
-  {id:'rifabutin', name:'Rifabutin 抗生素',        subtypes:['Rifabutin 150mg'],                                                                             shape:'capsule',color:'#CE93D8',color2:'#9575CD'},
-  {id:'doxycycline',name:'Doxycycline 抗生素',     subtypes:['Doxycycline 100mg'],                                                                           shape:'capsule',color:'#FFB74D',color2:'#FFF176'},
+  {id:'ppi',           name:'PPI 制酸劑',             subtypes:['Omeprazole 20mg','Esomeprazole 40mg','Lansoprazole 30mg','Rabeprazole 20mg','Pantoprazole 40mg'], shape:'round',  color:'#FFA726',color2:null,       note:''},
+  {id:'pcab',          name:'PCAB 制酸劑 (需自費)',     subtypes:['Vonoprazan 20mg'],                                                                              shape:'oval',   color:'#FF8A80',color2:null,       note:''},
+  {id:'bismuth',       name:'KCB 鉍劑',                subtypes:['Bismuth Subcitrate 120mg'],                                                                     shape:'round',  color:'#90A4AE',color2:null,       note:'大便及舌頭顏色可能暫時變黑灰色。'},
+  {id:'amoxicillin',   name:'Amoxicillin 抗生素',      subtypes:['Amoxicillin 250mg','Amoxicillin 500mg'],                                                        shape:'capsule',color:'#EF5350',color2:'#BDBDBD',note:'若對盤尼西林或青黴素類抗生素過敏，請主動告知醫師。'},
+  {id:'clarithromycin',name:'Clarithromycin 抗生素',   subtypes:['Clarithromycin 500mg'],                                                                         shape:'round',  color:'#FFD740',color2:null,       note:'嘴巴會有金屬味或苦味。'},
+  {id:'metronidazole', name:'Metronidazole 抗生素',    subtypes:['Metronidazole 250mg','Metronidazole 500mg'],                                                    shape:'round',  color:'#FF7043',color2:null,       note:'嘴巴會有金屬味。治療期間及停藥後 48–72 小時禁止飲酒。'},
+  {id:'tetracycline',  name:'Tetracycline 抗生素',     subtypes:['Tetracycline 500mg'],                                                                           shape:'capsule',color:'#66BB6A',color2:'#E0E0E0', note:'服藥前後 2 小時避免牛奶及鈣片。外出加強防曬（光敏感）。'},
+  {id:'levofloxacin',  name:'Levofloxacin 抗生素',     subtypes:['Levofloxacin 500mg'],                                                                          shape:'oval',   color:'#80DEEA',color2:null,       note:'避免與鈣片、鐵劑同時服用。若出現腳跟痛或肌腱疼痛立即停藥並回診。'},
+  {id:'rifabutin',     name:'Rifabutin 抗生素',         subtypes:['Rifabutin 150mg'],                                                                             shape:'capsule',color:'#CE93D8',color2:'#9575CD', note:'尿液、汗液、眼淚會暫時變橘紅色。'},
+  {id:'doxycycline',   name:'Doxycycline 抗生素',       subtypes:['Doxycycline 100mg'],                                                                           shape:'capsule',color:'#FFB74D',color2:'#FFF176', note:'吞藥時搭配大量開水，服藥後 30 分鐘內不要平躺。外出加強防曬（光敏感）。'},
 ];
 
 function mkD(drugId,freq,pills,times,subtype){return{drugId,subtype:subtype||0,freq,pills,times:times||null,customName:null,icon:null};}
 const ALL_TS=['breakfast','lunch','dinner','sleep'];
 
+const UN='1. 請按時服藥，切勿自行停藥，即使症狀改善也應完成整個療程。\n2. 如出現嚴重腸胃不適、嚴重過敏反應或其他異常，請立即回診。\n3. 治療結束後，請依醫師指示回診追蹤，確認幽門桿菌是否已根除。';
+
 const DEFAULT_PRESETS=[
-  {id:'bqt',name:'鉍劑四合一處方',isPhased:false,duration:14,notes:'1. 大便顏色可能暫時變黑灰色 (鉍劑)。\n2. 多喝水，服藥後30分鐘內勿平躺 (四環黴素)。\n3. 避免與乳製品併服 (四環黴素)。',
-   phases:[{drugs:[mkD('ppi',2,1,null,3),mkD('bismuth',4,1),mkD('tetracycline',4,1),mkD('metronidazole',4,2)]}]},
-  {id:'std_triple',name:'非鉍劑三合一處方',isPhased:false,duration:14,notes:'1. 請按時服藥，切勿自行停藥。\n2. 如有嚴重腸胃不適請回診。',
-   phases:[{drugs:[mkD('ppi',2,1,null,3),mkD('amoxicillin',2,2,null,1),mkD('clarithromycin',2,1)]}]},
-  {id:'concomitant',name:'非鉍劑四合一處方',isPhased:false,duration:14,notes:'1. 請按時服藥，切勿自行停藥。\n2. 服藥期間嚴禁飲酒 (Metronidazole)。',
-   phases:[{drugs:[mkD('ppi',2,1,null,3),mkD('amoxicillin',2,2,null,1),mkD('clarithromycin',2,1),mkD('metronidazole',2,2)]}]},
-  {id:'sequential',name:'序列四合一療法 (Sequential)',isPhased:true,phaseDurations:[7,7],notes:'1. 第一階段結束後立即開始第二階段，勿中斷。\n2. 服藥期間嚴禁飲酒 (Metronidazole)。',
-   phases:[{drugs:[mkD('ppi',2,1,null,3),mkD('amoxicillin',2,2,null,1)]},{drugs:[mkD('ppi',2,1,null,3),mkD('clarithromycin',2,1),mkD('metronidazole',2,2)]}]},
-  {id:'hybrid',name:'混合四合一療法 (Hybrid)',isPhased:true,phaseDurations:[7,7],notes:'1. 第一階段結束後立即開始第二階段，勿中斷。\n2. 服藥期間嚴禁飲酒 (Metronidazole)。',
-   phases:[{drugs:[mkD('ppi',2,1,null,3),mkD('amoxicillin',2,2,null,1)]},{drugs:[mkD('ppi',2,1,null,3),mkD('amoxicillin',2,2,null,1),mkD('clarithromycin',2,1),mkD('metronidazole',2,2)]}]},
-  {id:'rev_hybrid',name:'逆向混合四合一療法 (Reverse Hybrid)',isPhased:true,phaseDurations:[7,7],notes:'1. 第一階段結束後立即開始第二階段，勿中斷。\n2. 服藥期間嚴禁飲酒 (Metronidazole)。',
-   phases:[{drugs:[mkD('ppi',2,1,null,3),mkD('amoxicillin',2,2,null,1),mkD('clarithromycin',2,1),mkD('metronidazole',2,2)]},{drugs:[mkD('ppi',2,1,null,3),mkD('amoxicillin',2,2,null,1)]}]},
-  {id:'levo_triple',name:'Levofloxacin三合一處方',isPhased:false,duration:14,notes:'1. Levofloxacin 請於早餐前服用。\n2. 避免強烈陽光直射 (光敏感反應)。',
-   phases:[{drugs:[mkD('ppi',2,1,null,3),mkD('amoxicillin',2,2,null,1),mkD('levofloxacin',1,1,['breakfast'])]}]},
-  {id:'rifabutin',name:'Rifabutin三合一處方',isPhased:false,duration:14,notes:'1. Rifabutin 可能使體液（尿液、淚液）變橘色，屬正常現象。',
-   phases:[{drugs:[mkD('ppi',2,1,null,3),mkD('amoxicillin',2,2,null,1),mkD('rifabutin',2,1)]}]},
-  {id:'hdppi_dual',name:'高劑量PPI二合一處方',isPhased:false,duration:14,notes:'1. 請按時服藥，切勿自行停藥。\n2. 如有嚴重腸胃不適請回診。',
-   phases:[{drugs:[mkD('ppi',4,1,ALL_TS,3),mkD('amoxicillin',4,3,ALL_TS)]}]},
-  {id:'pcab_dual',name:'PCAB二合一處方',isPhased:false,duration:14,notes:'1. PCAB制酸劑需自費，請詢問費用。\n2. 如對盤尼西林類抗生素過敏，請告知醫師。',
-   phases:[{drugs:[mkD('pcab',2,1),mkD('amoxicillin',3,2,null,1)]}]},
-  {id:'pcab_triple',name:'PCAB三合一處方',isPhased:false,duration:14,notes:'1. PCAB制酸劑需自費，請詢問費用。\n2. 如對盤尼西林類抗生素過敏，請告知醫師。',
-   phases:[{drugs:[mkD('pcab',2,1),mkD('amoxicillin',2,2,null,1),mkD('clarithromycin',2,1)]}]},
-  {id:'bap_triple',name:'BAP三合一處方',isPhased:false,duration:14,notes:'1. PCAB制酸劑需自費，請詢問費用。\n2. 大便顏色可能暫時變黑灰色 (鉍劑)。\n3. 如有嚴重腸胃不適請回診。',
-   phases:[{drugs:[mkD('pcab',2,1,['breakfast','dinner']),mkD('bismuth',4,1,ALL_TS),mkD('amoxicillin',4,3,ALL_TS)]}]},
+  {id:'bqt',      name:'鉍劑四合一處方',                          isPhased:false,duration:14,          notes:UN,phases:[{drugs:[mkD('ppi',2,1,null,3),mkD('bismuth',4,1),mkD('tetracycline',4,1),mkD('metronidazole',4,2)]}]},
+  {id:'std_triple',name:'非鉍劑三合一處方',                        isPhased:false,duration:14,          notes:UN,phases:[{drugs:[mkD('ppi',2,1,null,3),mkD('amoxicillin',2,2,null,1),mkD('clarithromycin',2,1)]}]},
+  {id:'concomitant',name:'非鉍劑四合一處方',                       isPhased:false,duration:14,          notes:UN,phases:[{drugs:[mkD('ppi',2,1,null,3),mkD('amoxicillin',2,2,null,1),mkD('clarithromycin',2,1),mkD('metronidazole',2,2)]}]},
+  {id:'sequential',name:'序列四合一療法 (Sequential)',              isPhased:true, phaseDurations:[7,7], notes:UN,phases:[{drugs:[mkD('ppi',2,1,null,3),mkD('amoxicillin',2,2,null,1)]},{drugs:[mkD('ppi',2,1,null,3),mkD('clarithromycin',2,1),mkD('metronidazole',2,2)]}]},
+  {id:'hybrid',    name:'混合四合一療法 (Hybrid)',                  isPhased:true, phaseDurations:[7,7], notes:UN,phases:[{drugs:[mkD('ppi',2,1,null,3),mkD('amoxicillin',2,2,null,1)]},{drugs:[mkD('ppi',2,1,null,3),mkD('amoxicillin',2,2,null,1),mkD('clarithromycin',2,1),mkD('metronidazole',2,2)]}]},
+  {id:'rev_hybrid',name:'逆向混合四合一療法 (Reverse Hybrid)',      isPhased:true, phaseDurations:[7,7], notes:UN,phases:[{drugs:[mkD('ppi',2,1,null,3),mkD('amoxicillin',2,2,null,1),mkD('clarithromycin',2,1),mkD('metronidazole',2,2)]},{drugs:[mkD('ppi',2,1,null,3),mkD('amoxicillin',2,2,null,1)]}]},
+  {id:'levo_triple',name:'Levofloxacin三合一處方',                 isPhased:false,duration:14,          notes:UN,phases:[{drugs:[mkD('ppi',2,1,null,3),mkD('amoxicillin',2,2,null,1),mkD('levofloxacin',1,1,['breakfast'])]}]},
+  {id:'rifabutin', name:'Rifabutin三合一處方',                     isPhased:false,duration:14,          notes:UN,phases:[{drugs:[mkD('ppi',2,1,null,3),mkD('amoxicillin',2,2,null,1),mkD('rifabutin',2,1)]}]},
+  {id:'hdppi_dual',name:'高劑量PPI二合一處方',                     isPhased:false,duration:14,          notes:UN,phases:[{drugs:[mkD('ppi',4,1,ALL_TS,3),mkD('amoxicillin',4,3,ALL_TS)]}]},
+  {id:'pcab_dual', name:'PCAB二合一處方',                          isPhased:false,duration:14,          notes:UN,phases:[{drugs:[mkD('pcab',2,1),mkD('amoxicillin',3,2,null,1)]}]},
+  {id:'pcab_triple',name:'PCAB三合一處方',                         isPhased:false,duration:14,          notes:UN,phases:[{drugs:[mkD('pcab',2,1),mkD('amoxicillin',2,2,null,1),mkD('clarithromycin',2,1)]}]},
+  {id:'bap_triple',name:'BAP三合一處方',                           isPhased:false,duration:14,          notes:UN,phases:[{drugs:[mkD('pcab',2,1,['breakfast','dinner']),mkD('bismuth',4,1,ALL_TS),mkD('amoxicillin',4,3,ALL_TS)]}]},
 ];
 
 const TIME_SLOTS=[{id:'breakfast',label:'早餐前'},{id:'lunch',label:'午餐前'},{id:'dinner',label:'晚餐前'},{id:'sleep',label:'睡前'}];
@@ -344,11 +373,13 @@ const SW2=['#E0E0E0','#BDBDBD','#F5F5F5','#FFFFFF','#FFF9C4','#E8F5E9','#E3F2FD'
 // ═══════════════════════════════════════════════
 function dc(x){return JSON.parse(JSON.stringify(x));}
 
-let DRUGS_DB=(()=>{try{const s=localStorage.getItem('hp_drugs_v2');if(s){const d=JSON.parse(s);if(Array.isArray(d)&&d.length)return d;}}catch{}return dc(DEFAULT_DRUGS);})();
-let allPresets=(()=>{try{const s=localStorage.getItem('hp_presets_v6');if(s){const p=JSON.parse(s);if(Array.isArray(p)&&p.length)return p;}}catch{}return dc(DEFAULT_PRESETS);})();
+let DRUGS_DB=(()=>{try{const s4=localStorage.getItem('hp_drugs_v4');if(s4){const d=JSON.parse(s4);if(Array.isArray(d)&&d.length)return d;}const sold=localStorage.getItem('hp_drugs_v3')||localStorage.getItem('hp_drugs_v2');if(sold){const d=JSON.parse(sold);if(Array.isArray(d)&&d.length){d.forEach(dr=>{const def=DEFAULT_DRUGS.find(x=>x.id===dr.id);if(def)dr.note=def.note;});// Re-sort to match DEFAULT_DRUGS order
+const sorted=DEFAULT_DRUGS.map(def=>d.find(dr=>dr.id===def.id)).filter(Boolean);d.filter(dr=>!DEFAULT_DRUGS.find(def=>def.id===dr.id)).forEach(dr=>sorted.push(dr));return sorted;}}}catch{}return dc(DEFAULT_DRUGS);})();
+let allPresets=(()=>{try{const s7=localStorage.getItem('hp_presets_v7');if(s7){const p=JSON.parse(s7);if(Array.isArray(p)&&p.length)return p;}// Migrate: use fresh defaults, append custom presets from v6
+const base=dc(DEFAULT_PRESETS);const builtinIds=new Set(base.map(x=>x.id));const s6=localStorage.getItem('hp_presets_v6');if(s6){const old=JSON.parse(s6);if(Array.isArray(old))old.forEach(p=>{if(!builtinIds.has(p.id))base.push(p);});}return base;}catch{}return dc(DEFAULT_PRESETS);})();
 
-function saveDrugs(){localStorage.setItem('hp_drugs_v2',JSON.stringify(DRUGS_DB));}
-function savePresets(){localStorage.setItem('hp_presets_v6',JSON.stringify(allPresets));}
+function saveDrugs(){localStorage.setItem('hp_drugs_v4',JSON.stringify(DRUGS_DB));}
+function savePresets(){localStorage.setItem('hp_presets_v7',JSON.stringify(allPresets));}
 
 // Migrate existing localStorage data (drug list cleanup)
 (function(){
@@ -364,8 +395,56 @@ function savePresets(){localStorage.setItem('hp_presets_v6',JSON.stringify(allPr
   DRUGS_DB.forEach(d=>{if(d.subtypes)d.subtypes=d.subtypes.map(s=>{if(subtypeRenames[s]){dChanged=true;return subtypeRenames[s];}return s;});});
   // Migrate PPI subtype 0→3 (Omeprazole→Rabeprazole/Pariet) in all saved presets
   allPresets.forEach(p=>{p.phases.forEach(ph=>{ph.drugs.forEach(d=>{if(d.drugId==='ppi'&&d.subtype===0){d.subtype=3;pChanged=true;}});});});
+  // Ensure all drugs have a note field (defensive)
+  DRUGS_DB.forEach(d=>{if(d.note===undefined){d.note='';dChanged=true;}});
   if(dChanged)saveDrugs();
 })();
+
+// ═══════════════════════════════════════════════
+//  STATIC SIDE EFFECTS DATA
+// ═══════════════════════════════════════════════
+const DRUG_SIDE_EFFECTS={
+  ppi:{name:'PPI（質子幫浦抑制劑）',subtitle:'Omeprazole / Esomeprazole / Lansoprazole / Rabeprazole / Pantoprazole',sections:[
+    {title:'副作用',items:['頭痛、腹瀉、噁心、腹脹','長期使用：低鎂血症、低鈣 → 骨折風險上升','增加困難梭狀芽孢桿菌（C. diff）感染風險','長期使用可能增加慢性腎病或急性間質性腎炎風險（因果關係未確立）']},
+    {title:'注意事項',items:['需於飯前服用（需胃酸活化）','與 Clopidogrel（保栓通）併用：Esomeprazole / Omeprazole 會降低其抗血小板效果，Rabeprazole / Pantoprazole 影響較小，HP 治療期間若有需求優先選用後二者']}
+  ]},
+  pcab:{name:'PCAB（鉀離子競爭性酸阻斷劑）',subtitle:'Vonoprazan（Vocinti® 福星定）',sections:[
+    {title:'副作用',items:['頭痛、腹瀉、噁心','肝指數輕微升高（有肝功能異常通報）']},
+    {title:'注意事項',items:['肝功能不良者需謹慎使用','主要經 CYP3A4 代謝，與 Itraconazole、Atazanavir 等 CYP3A4 抑制劑併用需注意','長期使用可能影響鈣質吸收（骨質疏鬆高風險者告知醫師）','屬自費藥品']}
+  ]},
+  bismuth:{name:'Bismuth Subcitrate（KCB® 鉍劑）',sections:[
+    {title:'副作用',items:['糞便、舌頭變黑（正常現象，需事先告知患者）','便祕或腹瀉、噁心、食慾不振','長期大量使用：鉍中毒 → 神經毒性（腦病變、震顫、混亂）']},
+    {title:'注意事項',items:['避免長期連續使用（不超過建議療程）','腎功能不良者慎用（鉍由腎臟排除）','服藥期間禁酒']}
+  ]},
+  amoxicillin:{name:'Amoxicillin',sections:[
+    {title:'副作用',items:['腹瀉、噁心、胃腸不適（最常見）','皮疹（約 3–5%，多為非過敏性斑丘疹）','嚴重（少見）：過敏性休克、蕁麻疹、Stevens-Johnson 症候群']},
+    {title:'注意事項',items:['青黴素過敏者禁用，使用前務必詢問過敏史','腹瀉嚴重時勿自行服用止瀉藥，需回診']}
+  ]},
+  clarithromycin:{name:'Clarithromycin',sections:[
+    {title:'副作用',items:['金屬味或苦味（最常見主訴）','腹瀉、噁心、腹痛','QT 間期延長 → 心律不整風險（Torsades de pointes）']},
+    {title:'注意事項',items:['強效 CYP3A4 抑制劑，與 Statins（Lovastatin、Simvastatin）併用 → 橫紋肌溶解風險，需暫停','心臟病患或 QT 延長病史者需謹慎','HP 治療期間為最常見抗藥性抗生素，台灣抗藥性率約 15–30%']}
+  ]},
+  metronidazole:{name:'Metronidazole',sections:[
+    {title:'副作用',items:['噁心、頭痛、口中金屬味','周邊神經病變（手腳麻木、刺痛）── 長期使用風險']},
+    {title:'注意事項',items:['服藥期間及停藥後 24 小時內絕對禁酒（Disulfiram-like reaction：潮紅、心悸、嘔吐）','癲癇病史或中樞神經疾病者禁用','懷孕（尤其妊娠初期）需特別謹慎']}
+  ]},
+  tetracycline:{name:'Tetracycline',sections:[
+    {title:'副作用',items:['腸胃不適（噁心、嘔吐）','光過敏（曬太陽後皮膚容易曬傷）','8 歲以下兒童服用 → 牙齒永久變色，骨骼發育受影響']},
+    {title:'注意事項',items:['需空腹服用（飯前 1 小時或飯後 2 小時）','避免與乳製品、制酸劑、鈣片、鐵劑同服（二三價金屬離子大幅降低吸收）','孕婦、哺乳婦、8 歲以下兒童禁用','外出做好防曬']}
+  ]},
+  levofloxacin:{name:'Levofloxacin',sections:[
+    {title:'副作用',items:['腸胃不適、頭痛、頭暈','肌腱炎或肌腱斷裂（尤其 60 歲以上、併用類固醇者）','光過敏','QT 間期延長']},
+    {title:'注意事項',items:['建議早餐前服用','避免與含二價金屬離子製劑（制酸劑、鐵劑、鈣片）同時服用，需間隔至少 2 小時','外出防曬','腎功能不良者需調整劑量','癲癇病史者慎用','台灣抗藥性率近年上升，需注意']}
+  ]},
+  rifabutin:{name:'Rifabutin',sections:[
+    {title:'副作用',items:['體液（尿液、汗液、淚液、唾液）變橘紅色（正常現象，需告知患者）','皮疹、發燒、類流感症狀','血液毒性：血小板減少、白血球減少（出血或感染風險）','葡萄膜炎（眼睛發炎）── 較高劑量時']},
+    {title:'注意事項',items:['肝臟酵素誘導劑（與口服避孕藥、Cyclosporine、抗凝血劑等多種藥物交互作用）','用於三線以後的救援療法，需確認其他治療失敗後才使用','定期監測血球計數']}
+  ]},
+  doxycycline:{name:'Doxycycline',sections:[
+    {title:'副作用',items:['噁心、嘔吐、腹瀉、腹痛','光過敏（曬太陽後皮膚容易曬傷）','食道炎（未配足量水服藥）','8 歲以下兒童服用 → 牙齒永久變色，骨骼發育受影響']},
+    {title:'注意事項',items:['空腹較佳；胃不適可與食物或牛奶併服，需配大量白開水，服後勿立即躺下','避免與制酸劑、鈣片、鐵劑同服（需間隔 1 小時前 / 2 小時後）','口服避孕藥效果降低，需改用其他避孕方法','外出做好防曬','長期使用需追蹤肝腎功能及血液凝血功能','孕婦、哺乳婦、8 歲以下兒童禁用','肝功能不全、食道疾病者慎用']}
+  ]},
+};
 
 // ═══════════════════════════════════════════════
 //  STATE
@@ -466,7 +545,7 @@ function isDefaultState(){
   const strip=obj=>JSON.parse(JSON.stringify(obj,(k,v)=>k==='uid'?undefined:v));
   if(JSON.stringify(strip(allPresets))!==JSON.stringify(strip(DEFAULT_PRESETS)))return false;
   if(DRUGS_DB.some(d=>d.deleted)||DRUGS_DB.length!==DEFAULT_DRUGS.length)return false;
-  const normDrug=d=>({id:d.id,name:d.name,subtypes:d.subtypes,shape:d.shape,color:d.color,color2:d.color2||null});
+  const normDrug=d=>({id:d.id,name:d.name,subtypes:d.subtypes,shape:d.shape,color:d.color,color2:d.color2||null,note:d.note||''});
   return JSON.stringify(DRUGS_DB.map(normDrug))===JSON.stringify(DEFAULT_DRUGS.map(normDrug));
 }
 function syncResetBtn(){
@@ -612,7 +691,7 @@ function renderPreview(){
 
   const thead=`<tr><th>療程</th><th>藥物</th>${TIME_SLOTS.map(s=>`<th>${s.label}</th>`).join('')}</tr>`;
   const fmtReg=n=>n.replace(/\s*\(/,'<br>(');
-  const fmtDrug=(e)=>{const db=getDB(e.drugId);const nm=e.customName||db?.name||e.drugId;const dose=db?.subtypes?.[e.subtype];return dose?`${nm}<br><span class="drug-dose">(${dose})</span>`:nm;};
+  const fmtDrug=(e)=>{const db=getDB(e.drugId);const nm=e.customName||db?.name||e.drugId;const dose=db?.subtypes?.[e.subtype];return dose?`<span class="drug-nm">${nm}</span><br><span class="drug-dose">(${dose})</span>`:`<span class="drug-nm">${nm}</span>`;};
   let tbody='';
 
   if(empty){paper.innerHTML=`<div class="preview-title">幽門桿菌治療 服藥指南</div><div class="empty-hint">請選擇組套或新增藥物</div>`;return;}
@@ -640,11 +719,26 @@ function renderPreview(){
     });
   }
 
-  const notesH=notes?`<div class="notes-sec">提醒事項：${notes.split('\n').filter(l=>l.trim()).join('<br>　　　　　')}</div>`:'';
+  // Notes (left-aligned individual lines)
+  const notesH=notes?`<div class="notes-sec"><div class="notes-title">提醒事項：</div>${notes.split('\n').filter(l=>l.trim()).map(l=>`<div class="notes-line">${l.trim()}</div>`).join('')}</div>`:'';
+
+  // Drug special notes (藥品特殊囑言) in preset drug order, skip empty
+  const drugOrder=[];const seen=new Set();
+  R.phases.forEach(ph=>ph.drugs.forEach(e=>{if(!seen.has(e.drugId)){seen.add(e.drugId);drugOrder.push(e);}}));
+  const snLines=drugOrder.map(e=>{const db=getDB(e.drugId);const n=(db?.note||'').trim();if(!n)return'';const nm=e.customName||db?.name||e.drugId;return`<div class="special-notes-line">【${nm}】${n}</div>`;}).filter(Boolean);
+  const specialNotesH=snLines.length?`<div class="special-notes-sec"><div class="special-notes-title">藥品特殊囑言：</div>${snLines.join('')}</div>`:'';
+
+  // Side effects preview (screen only, not printed) — linked to current preset
+  const seBlocksStr=buildSeBlocks(false);
+  const sePreviewH=seBlocksStr?`<div class="se-preview"><div class="se-preview-title">藥品副作用及注意事項</div><div class="se-preview-hint">（僅供螢幕參考，不列印）</div>${seBlocksStr}</div>`:'';
+
   paper.innerHTML=`<div class="preview-title">幽門桿菌治療 服藥指南</div>
     <table class="med-table"><thead>${thead}</thead><tbody>${tbody}</tbody></table>
+    <div class="icon-footnote">※ 藥品圖示可能與實際藥品外觀不同</div>
     ${notesH}
-    <div class="footer-bar"><span>療程天數：<strong>${dur}</strong> 天</span>${clinic?`<span>${clinic}</span>`:'<span></span>'}</div>`;
+    ${specialNotesH}
+    <div class="footer-bar"><span>療程天數：<strong>${dur}</strong> 天</span>${clinic?`<span>${clinic}</span>`:'<span></span>'}</div>
+    ${sePreviewH}`;
 }
 
 // ═══════════════════════════════════════════════
@@ -979,6 +1073,8 @@ function renderDmList(){
         <div class="swatch-row">${sw1}</div>
         <input class="hex-input" value="${d.color}" placeholder="#RRGGBB" oninput="dmSetColorHex(${i},this.value,false)">
         ${showC2?`<div class="dm-section-label">副色（膠囊右半）</div><div class="swatch-row">${sw2}</div><input class="hex-input" value="${d.color2||''}" placeholder="#RRGGBB（選填）" oninput="dmSetColorHex(${i},this.value,true)">`:``}
+        <div class="dm-section-label">藥品特殊囑言</div>
+        <textarea class="dm-note-ta" oninput="dmEditNote(${i},this.value);autoExpandTa(this)" placeholder="服藥時的特殊提醒事項（選填）">${esc(d.note||'')}</textarea>
       </div>`:''}
     </div>`;
   }).join('');
@@ -1033,6 +1129,41 @@ function cancelDrugMgr(){
     else return;
   }
   closeDrugMgr();
+}
+
+// ═══════════════════════════════════════════════
+//  DRUG MANAGER — NOTE FIELD
+// ═══════════════════════════════════════════════
+function dmEditNote(i,v){if(dmData[i]){dmData[i].note=v;dmDirty=true;syncDmBtns();}}
+function autoExpandTa(el){el.style.height='auto';el.style.height=el.scrollHeight+'px';}
+
+// ═══════════════════════════════════════════════
+//  SIDE EFFECTS OVERLAY
+// ═══════════════════════════════════════════════
+function buildSeBlocks(allDrugs){
+  const entries=allDrugs
+    ? DRUGS_DB.filter(d=>!d.deleted).map(d=>({drugId:d.id,customName:null}))
+    : (()=>{const order=[];const seen=new Set();R.phases.forEach(ph=>ph.drugs.forEach(e=>{if(!seen.has(e.drugId)){seen.add(e.drugId);order.push(e);}}));return order;})();
+  return entries.map(e=>{
+    const se=DRUG_SIDE_EFFECTS[e.drugId];if(!se)return'';
+    const db=getDB(e.drugId);const nm=e.customName||db?.name||e.drugId;
+    const sub=se.subtitle?`<div style="font-size:11px;color:#888;font-style:italic;margin-bottom:6px">${se.subtitle}</div>`:'';
+    const sects=se.sections.map(s=>`<div class="se-sub">▸ ${s.title}</div>`+s.items.map((it,idx)=>`<div class="se-item">${idx+1}. ${it}</div>`).join('')).join('');
+    return`<div class="se-drug-block"><div class="se-drug-hdr">${se.name||nm}</div>${sub}${sects}</div>`;
+  }).filter(Boolean).join('');
+}
+function openSeOverlay(){
+  const overlay=document.getElementById('seOverlay');
+  const content=document.getElementById('seOverlayContent');
+  // Show ALL drugs regardless of current preset
+  const blocks=buildSeBlocks(true);
+  content.innerHTML=blocks||'<p style="color:#bbb;font-size:14px;text-align:center;padding:40px 0">尚無藥品資料</p>';
+  overlay.classList.add('open');
+  document.querySelector('.input-panel').classList.add('main-locked');
+}
+function closeSeOverlay(){
+  document.getElementById('seOverlay').classList.remove('open');
+  document.querySelector('.input-panel').classList.remove('main-locked');
 }
 
 // ═══════════════════════════════════════════════
