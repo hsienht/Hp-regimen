@@ -1,0 +1,212 @@
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'PingFang TC','Noto Sans TC','Microsoft JhengHei',sans-serif;background:#eef2f7;color:#333;min-height:100vh}
+.app{display:flex;height:100vh;overflow:hidden;position:relative}
+
+/* ── Input Panel ── */
+.input-panel{width:430px;min-width:390px;background:#fff;padding:0;overflow-y:auto;border-right:1px solid #dde3ef;display:flex;flex-direction:column;height:100vh}
+.panel-inner{padding:20px;display:flex;flex-direction:column;gap:0;flex:1}
+.panel-title{font-size:16px;font-weight:700;color:#1a237e;margin-bottom:14px;display:flex;align-items:center;gap:6px}
+.sec-label{font-size:11px;font-weight:700;color:#7986cb;text-transform:uppercase;letter-spacing:1px;margin:14px 0 7px;display:flex;align-items:center;justify-content:space-between}
+
+/* Main content lock */
+.main-locked{pointer-events:none;opacity:.38;user-select:none}
+
+/* Text inputs */
+.text-input{width:100%;border:1.5px solid #dde3ef;border-radius:8px;padding:7px 10px;font-size:14px;font-family:inherit;transition:border-color .15s}
+.text-input:focus{outline:none;border-color:#5c6bc0}
+.text-input:disabled{background:#f5f5f5;cursor:not-allowed}
+
+/* Preset grid */
+.preset-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-bottom:6px}
+.preset-btn{padding:6px 4px;border:1.5px solid #dde3ef;background:#fff;border-radius:7px;cursor:pointer;font-size:11px;font-weight:600;color:#555;transition:all .12s;text-align:center;font-family:inherit;line-height:1.3}
+.preset-btn:hover{border-color:#5c6bc0;color:#5c6bc0;background:#f0f2ff}
+.preset-btn.active{border-color:#3f51b5;background:#3f51b5;color:#fff}
+
+/* Preset action row */
+.preset-action-row{display:flex;gap:5px;margin-bottom:2px;flex-wrap:wrap}
+
+/* ── Preset Manager Panel ── */
+.mgr-panel{display:none;background:#fff;padding:14px 20px 0;flex-direction:column;flex:1;overflow:hidden}
+.mgr-panel.open{display:flex}
+.mgr-title{font-size:13px;font-weight:700;color:#3f51b5;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.mgr-mode-hint{font-size:11px;color:#9fa8da;margin-left:auto}
+
+.mgr-list{flex:1;overflow-y:auto;min-height:0;display:flex;flex-direction:column;gap:2px}
+.mgr-row{display:flex;align-items:center;gap:6px;padding:5px 6px;border-radius:7px;background:#f8f9ff;border:1.5px solid transparent;transition:border-color .1s,background .1s;cursor:default}
+.mgr-row.drag-over{border-color:#5c6bc0;background:#eef0ff}
+.mgr-drag-handle{cursor:grab;color:#bbb;font-size:14px;padding:0 2px;user-select:none;flex-shrink:0}
+.mgr-drag-handle:active{cursor:grabbing}
+.mgr-name-input{flex:1;border:1px solid transparent;border-radius:5px;padding:3px 6px;font-size:12px;font-family:inherit;background:transparent;color:#333;transition:all .1s}
+.mgr-name-input:focus{outline:none;border-color:#5c6bc0;background:#fff}
+.mgr-name-input.modified{color:#e65100;font-weight:600}
+.mgr-name-input.deleted{color:#e65100;text-decoration:line-through}
+.mgr-row.reordered .mgr-drag-handle{color:#1565c0}
+.mgr-row.reordered .mgr-name-input{color:#1565c0;font-weight:600}
+.mgr-del-btn{width:22px;height:22px;border:none;background:transparent;cursor:pointer;font-size:13px;color:#bbb;border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .1s}
+.mgr-del-btn:hover{background:#ffebee;color:#e53935}
+.mgr-del-btn.active{color:#e53935}
+.mgr-actions{display:flex;gap:6px;flex-wrap:wrap;padding:8px 0 8px;border-top:1px solid #eee;flex-shrink:0}
+.mgr-hint{font-size:11px;color:#bbb;padding-bottom:8px;flex-shrink:0}
+
+/* Phase toggle */
+.phase-toggle-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:8px 10px;background:#f0f2ff;border-radius:8px}
+.toggle-switch{position:relative;width:36px;height:20px;flex-shrink:0}
+.toggle-switch input{opacity:0;width:0;height:0}
+.toggle-track{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#ccc;border-radius:20px;transition:.2s}
+.toggle-track:before{position:absolute;content:"";height:14px;width:14px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s}
+.toggle-switch input:checked+.toggle-track{background:#5c6bc0}
+.toggle-switch input:checked+.toggle-track:before{transform:translateX(16px)}
+.toggle-label{font-size:12px;font-weight:600;color:#5c6bc0}
+.phase-dur-select{margin-left:auto;border:1.5px solid #c5cae9;border-radius:6px;padding:3px 6px;font-size:12px;font-family:inherit;background:#fff;cursor:pointer}
+
+/* Phase sections */
+.phase-section{background:#f8f9ff;border:1.5px solid #e4e8f5;border-radius:10px;padding:10px;margin-bottom:8px}
+.phase-header-row{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.phase-badge{padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;color:#fff}
+.p1{background:#5c6bc0}.p2{background:#00897b}
+
+/* Drug rows */
+.drug-list{display:flex;flex-direction:column;gap:7px}
+.drug-row{background:#fff;border:1.5px solid #e4e8f5;border-radius:9px;padding:10px 11px}
+.drug-row-header{display:flex;align-items:center;gap:7px;margin-bottom:7px}
+.drug-icon-btn{flex-shrink:0;border:none;background:transparent;cursor:pointer;padding:0;border-radius:4px;transition:transform .15s}
+.drug-icon-btn:hover{transform:scale(1.18)}
+.drug-select{flex:1;border:1px solid #dde3ef;border-radius:6px;padding:4px 7px;font-size:12px;font-family:inherit;background:white;cursor:pointer}
+.remove-btn{width:22px;height:22px;border:none;background:#ffebee;color:#e53935;border-radius:50%;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:1}
+.remove-btn:hover{background:#ffcdd2}
+.subtype-select{width:100%;border:1px solid #dde3ef;border-radius:6px;padding:3px 7px;font-size:11px;color:#666;font-family:inherit;background:white;margin-bottom:7px}
+.controls-row{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap}
+.ctrl-grp{display:flex;flex-direction:column;gap:2px}
+.ctrl-lbl{font-size:10px;font-weight:600;color:#9fa8da}
+.freq-btns{display:flex;gap:2px}
+.freq-btn{width:28px;height:26px;border:1.5px solid #dde3ef;background:white;border-radius:5px;cursor:pointer;font-size:11px;font-weight:700;color:#666;transition:all .1s;font-family:inherit}
+.freq-btn:hover{border-color:#7986cb;color:#5c6bc0}
+.freq-btn.active{background:#5c6bc0;border-color:#5c6bc0;color:white}
+.pills-sel{height:26px;border:1.5px solid #dde3ef;border-radius:5px;font-size:12px;font-family:inherit;padding:0 4px;background:white;cursor:pointer;min-width:54px}
+.time-row{margin-top:7px}
+.time-chips{display:flex;gap:4px;margin-top:3px;flex-wrap:wrap}
+.time-lbl{display:flex;cursor:pointer}
+.time-lbl input{display:none}
+.time-chip{padding:2px 7px;border:1.5px solid #dde3ef;border-radius:5px;font-size:10px;font-weight:600;color:#777;background:white;transition:all .1s;user-select:none}
+.time-lbl input:checked+.time-chip{background:#5c6bc0;border-color:#5c6bc0;color:white}
+.custom-name-input{width:100%;border:1px solid #dde3ef;border-radius:5px;padding:3px 7px;font-size:11px;font-family:inherit;background:white;color:#444;margin-top:7px}
+.custom-name-input::placeholder{color:#bbb}
+
+/* Icon editor */
+.icon-editor{margin-top:8px;padding:8px;background:#f0f2ff;border-radius:8px;border:1px solid #c5cae9}
+.shape-opts{display:flex;gap:4px;flex-wrap:wrap;margin-top:3px}
+.shape-btn{padding:3px 8px;border:1.5px solid #dde3ef;border-radius:5px;background:white;cursor:pointer;font-size:11px;font-family:inherit;transition:all .1s}
+.shape-btn.active{background:#5c6bc0;border-color:#5c6bc0;color:white}
+.swatch-row{display:flex;flex-wrap:wrap;gap:3px;margin-top:3px}
+.swatch{width:20px;height:20px;border-radius:4px;cursor:pointer;border:2px solid transparent;transition:transform .1s;flex-shrink:0}
+.swatch:hover{transform:scale(1.15)}
+.swatch.on{border-color:#333;transform:scale(1.1)}
+.hex-input{border:1px solid #dde3ef;border-radius:5px;padding:2px 5px;font-size:11px;font-family:monospace;width:72px;margin-top:3px;display:block}
+.reset-icon-btn{margin-top:6px;padding:3px 8px;border:1px solid #dde3ef;background:white;border-radius:5px;cursor:pointer;font-size:11px;color:#888;font-family:inherit}
+.reset-icon-btn:hover{background:#ffebee;color:#e53935;border-color:#ffcdd2}
+
+.add-drug-btn{width:100%;padding:8px;border:2px dashed #c5cae9;background:transparent;border-radius:8px;cursor:pointer;color:#9fa8da;font-size:12px;font-weight:600;transition:all .15s;margin-top:4px;font-family:inherit}
+.add-drug-btn:hover{border-color:#5c6bc0;color:#5c6bc0;background:#f0f2ff}
+
+/* Settings */
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sf label{display:block;font-size:10px;font-weight:700;color:#9fa8da;margin-bottom:3px}
+.sf input,.sf textarea{width:100%;border:1.5px solid #dde3ef;border-radius:7px;padding:6px 9px;font-size:12px;font-family:inherit}
+.sf input:focus,.sf textarea:focus{outline:none;border-color:#5c6bc0}
+.sf textarea{resize:vertical;min-height:64px}
+
+/* Buttons */
+.btn{padding:8px 12px;border-radius:8px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;border:1.5px solid transparent;transition:all .15s}
+.btn-primary{background:#3f51b5;color:#fff;border-color:#3f51b5}.btn-primary:hover{background:#303f9f}
+.btn-secondary{background:#fff;color:#5c6bc0;border-color:#c5cae9}.btn-secondary:hover{background:#f0f2ff;border-color:#5c6bc0}
+.btn-warn{background:#fff;color:#e65100;border-color:#ffcc80}.btn-warn:hover{background:#fff3e0}
+.btn-danger{background:#fff;color:#e53935;border-color:#ffcdd2}.btn-danger:hover{background:#ffebee}
+.btn-sm{padding:5px 9px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;border:1.5px solid #c5cae9;background:white;color:#5c6bc0;transition:all .1s}
+.btn-sm:hover{background:#f0f2ff}
+.btn-sm.primary{background:#5c6bc0;border-color:#5c6bc0;color:#fff}.btn-sm.primary:hover{background:#3f51b5}
+.btn-sm.warn{color:#e65100;border-color:#ffcc80}.btn-sm.warn:hover{background:#fff3e0}
+.btn-sm.danger{color:#e53935;border-color:#ffcdd2}.btn-sm.danger:hover{background:#ffebee}
+.action-row{display:flex;gap:6px;margin-top:16px}
+
+/* ── Preview ── */
+.preview-panel{flex:1;padding:28px;overflow-y:auto;display:flex;flex-direction:column;align-items:center;height:100vh;position:relative}
+.preview-paper{background:white;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.1);padding:40px 44px;width:100%;max-width:900px}
+.preview-title{text-align:center;font-size:32px;font-weight:300;color:#222;margin-bottom:28px;letter-spacing:3px}
+.empty-hint{text-align:center;color:#bbb;padding:60px 0;font-size:14px}
+.med-table{width:100%;border-collapse:collapse;border:2px solid #333}
+.med-table th,.med-table td{border:1.5px solid #555;padding:9px 13px;text-align:center;vertical-align:middle}
+.med-table thead th{font-weight:700;font-size:15px;background:#fafafa;letter-spacing:1px}
+.col-reg{font-size:14px;font-weight:700;min-width:110px}
+.col-drug{text-align:left!important;font-size:13px;font-weight:500;padding-right:16px!important}
+.drug-dose{font-size:11px;font-weight:400;color:#666;white-space:nowrap}
+.col-time{min-width:80px}
+.pills-cell{min-height:32px;display:flex;justify-content:center;align-items:center;gap:3px;flex-wrap:wrap;padding:3px 0;transform:scale(.8);transform-origin:center center}
+.phase-hdr td{background:#e8eaf6;font-size:13px;font-weight:700;color:#3f51b5;padding:6px 13px;text-align:left}
+.phase-hdr.p2 td{background:#e0f2f1;color:#00695c}
+.notes-sec{margin-top:14px;font-size:12px;line-height:1.9;color:#444}
+.footer-bar{display:flex;justify-content:space-between;align-items:baseline;margin-top:14px;font-size:14px;font-weight:600;border-top:1px solid #e0e0e0;padding-top:10px}
+
+/* ── Drug Manager Panel (inside input-panel) ── */
+.drug-panel{display:none;background:#fff;border-bottom:2px solid #c5cae9;padding:14px 20px 0;flex-direction:column;flex:1;overflow:hidden}
+.drug-panel.open{display:flex}
+.drug-panel-title-row{font-size:13px;font-weight:700;color:#3f51b5;margin-bottom:10px;flex-shrink:0}
+.drug-panel-scroll{flex:1;overflow-y:auto;min-height:0}
+.drug-panel-actions{display:flex;gap:6px;flex-wrap:wrap;padding:8px 0 12px;border-top:1px solid #eee;flex-shrink:0}
+/* A5 global reset button */
+.defaults-off{color:#bbb!important;border-color:#e0e0e0!important;background:#f5f5f5!important;cursor:not-allowed!important;pointer-events:none!important}
+
+/* Drug manager rows */
+.dm-drug-row{border:1.5px solid #e4e8f5;border-radius:10px;margin-bottom:8px;overflow:hidden}
+.dm-drug-header{display:flex;align-items:center;gap:8px;padding:9px 12px;cursor:pointer;background:#f8f9ff;transition:background .1s}
+.dm-drug-header:hover{background:#f0f2ff}
+.dm-drug-name-input{flex:1;border:1px solid transparent;border-radius:5px;padding:3px 7px;font-size:13px;font-family:inherit;background:transparent;font-weight:600}
+.dm-drug-name-input:focus{outline:none;border-color:#5c6bc0;background:#fff}
+.dm-expand-icon{color:#aaa;font-size:12px;flex-shrink:0}
+.dm-drug-body{padding:12px;border-top:1px solid #e4e8f5;background:#fff;display:none}
+.dm-drug-body.open{display:block}
+.dm-section-label{font-size:11px;font-weight:700;color:#9fa8da;margin-bottom:5px;margin-top:10px}
+.dm-section-label:first-child{margin-top:0}
+.dm-subtypes{display:flex;flex-direction:column;gap:4px}
+.dm-subtype-row{display:flex;gap:5px;align-items:center}
+.dm-subtype-input{flex:1;border:1px solid #dde3ef;border-radius:5px;padding:4px 8px;font-size:12px;font-family:inherit}
+.dm-subtype-del{width:22px;height:22px;border:none;background:#ffebee;color:#e53935;border-radius:50%;cursor:pointer;font-size:14px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.dm-subtype-del:hover{background:#ffcdd2}
+.dm-add-subtype-btn{padding:3px 8px;border:1.5px dashed #c5cae9;background:transparent;border-radius:5px;font-size:11px;color:#9fa8da;cursor:pointer;font-family:inherit;margin-top:3px}
+.dm-add-subtype-btn:hover{border-color:#5c6bc0;color:#5c6bc0}
+.dm-deleted{opacity:.5;pointer-events:none}
+.dm-drug-header.deleted .dm-drug-name-input{text-decoration:line-through;color:#e53935}
+
+.drug-nm{white-space:nowrap}
+.notes-title{font-size:12px;font-weight:600;color:#444;margin-bottom:2px}
+.notes-line{font-size:12px;color:#444;line-height:1.8}
+.icon-footnote{font-size:11px;color:#666;margin-top:6px;margin-bottom:10px}
+.special-notes-sec{margin-top:8px}
+.special-notes-title{font-size:12px;font-weight:600;color:#444;margin-bottom:2px}
+.special-notes-line{font-size:12px;color:#444;line-height:1.8;padding-left:4px}
+.se-preview{margin-top:24px;padding-top:16px;border-top:2px dashed #cdd;page-break-inside:avoid}
+.se-preview-hint{font-size:11px;color:#888;font-style:italic;margin-bottom:10px}
+.se-preview-title{font-size:13px;font-weight:700;color:#1a237e;margin-bottom:10px}
+.se-drug-block{margin-bottom:12px}
+.se-drug-hdr{font-size:12px;font-weight:700;color:#333;border-bottom:1px solid #eee;padding-bottom:2px;margin-bottom:4px}
+.se-sub{font-size:11px;font-weight:700;color:#5c6bc0;margin-top:4px;margin-bottom:1px}
+.se-item{font-size:11px;color:#444;line-height:1.7;padding-left:10px}
+.side-effects-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#fff;z-index:1000;overflow-y:auto;padding:36px 44px;box-sizing:border-box}
+.side-effects-overlay.open{display:block}
+.se-ol-header{font-size:20px;font-weight:700;color:#1a237e;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between}
+.se-ol-body .se-drug-block{margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid #eee}
+.se-ol-body .se-drug-hdr{font-size:14px}
+.se-ol-body .se-sub{font-size:12px}
+.se-ol-body .se-item{font-size:12px}
+.dm-note-ta{width:100%;border:1px solid #dde3ef;border-radius:5px;padding:5px 8px;font-size:12px;font-family:inherit;resize:none;overflow:hidden;min-height:34px;line-height:1.6;box-sizing:border-box}
+.dm-note-ta:focus{outline:none;border-color:#5c6bc0}
+.panel-sub-row{display:flex;justify-content:flex-end;margin-bottom:6px}
+
+@media print{
+  .input-panel{display:none!important}
+  .preview-panel{padding:0;background:white}
+  .preview-paper{box-shadow:none;border-radius:0;padding:28px;max-width:100%}
+  body{background:white}
+  .se-preview{display:none!important}
+  .side-effects-overlay{display:none!important}
+  .col-drug{min-width:160px}
+}

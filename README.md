@@ -18,4 +18,15 @@
 
 ## 技術
 
-純靜態 HTML 單一檔案，使用 localStorage 儲存自訂設定，無需後端伺服器。
+純靜態 HTML/CSS/JavaScript，使用 localStorage 儲存自訂設定，無需後端伺服器。
+
+## V3.0A 資料層
+
+- `css/app.css`：原有樣式。
+- `js/defaults.js`：出廠藥品、組套與介面常數。
+- `js/storage.js`：可替換儲存 adapter、舊版資料載入與 migration。
+- `js/app.js`：原有處方編輯、管理與列印介面。
+
+依上述順序載入傳統 script，保留 HTML inline handlers 的相容性。此階段尚未加入 Supabase、登入或雲端同步；現有管理功能仍儲存在本機。既有 `hp_drugs_v4` / `hp_presets_v7` 不覆蓋；首次使用或恢復預設才會載入新版出廠內容。Tetracycline 250mg 加在既有 500mg 後，保持 subtype 索引相容。
+
+驗證：`node --test tests/data-layer.test.cjs`。
