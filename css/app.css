@@ -216,3 +216,6 @@ body{font-family:'PingFang TC','Noto Sans TC','Microsoft JhengHei',sans-serif;ba
 
 #cloudRestoreDialog{border:1px solid #ddd;border-radius:12px;max-width:90vw;padding:20px}#cloudRestoreDialog label{display:block;margin:12px 0}
 @media print{#cloudRestoreDialog{display:none!important}}
+
+#cloudSystemDialog,#cloudPasswordDialog{border:1px solid #ddd;border-radius:12px;max-width:90vw;padding:20px}#cloudSystemList{max-height:55vh;overflow:auto;padding-left:24px}#cloudSystemList li{display:flex;align-items:center;gap:6px;margin:10px 0}#cloudSystemList span{flex:1;min-width:0;overflow-wrap:anywhere}#cloudPasswordForm label{display:block;margin:12px 0}
+@media print{#cloudSystemDialog,#cloudPasswordDialog{display:none!important}}

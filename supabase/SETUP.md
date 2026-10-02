@@ -2,7 +2,7 @@
 
 此分支預設關閉雲端，原本的本機操作仍可使用。尚未部署。
 
-1. 建立 Supabase 專案，在 SQL Editor 依序執行 `001_schema.sql`、`002_seed.sql`、`004_management.sql`。Schema 為一次性 migration；不要重複執行。Seed 可重複執行，不覆蓋既有雲端修改。
+1. 建立 Supabase 專案，在 SQL Editor 依序執行 `001_schema.sql`、`002_seed.sql`、`004_management.sql`、`006_system_management.sql`。Schema 為一次性 migration；不要重複執行。Seed 可重複執行，不覆蓋既有雲端修改。
 2. Auth 設定關閉公開註冊，於 Dashboard 手動建立使用者。第一個管理者建立後，在 SQL Editor 執行：
    ```sql
    update public.profiles set role='admin',display_name='Hsiao'
@@ -24,7 +24,7 @@
 
 ## 尚待後續階段
 
-系統組套刪除／排序 UI、完整密碼重設 UI、真實 Supabase 與瀏覽器測試。雲端模式的組套儲存使用明確的個人／系統按鈕，舊本機組套管理被封鎖，避免誤認為已同步。Admin 藥品管理與備份／匯入說明見下方更新。
+真實 Supabase SQL／權限、Email 重設連結及瀏覽器測試。雲端模式的組套儲存使用明確的個人／系統按鈕，舊本機組套管理被封鎖，避免誤認為已同步。Admin 藥品管理與備份／匯入說明見下方更新。
 
 目前 Node 測試驗證資料白名單、預設劑量、本機相容性與模擬 DOM 啟動，不等於真實資料庫或瀏覽器驗證。SDK/API 依 Supabase 官方文件：
 - https://supabase.com/docs/reference/javascript/initializing
@@ -43,4 +43,23 @@
 - 舊版匯入只讀取此瀏覽器 `hp_presets_v7` / `hp_drugs_v4`，以合併方式存為登入帳號的個人組套。舊鍵不刪除、不覆蓋，也不自動發布成共用組套。若舊檔有雲端未提供的藥品規格，先停止並要求管理者補齊。
 - 單次檔案上限 2 MB，單次組套上限 100 個。匯入依藥品規格文字對應，避免來源與目的端的 subtype 索引不同而錯置。
 
-後續仍需真實 Supabase / SQL 權限與瀏覽器驗證，以及完整密碼重設、系統組套刪除與排序介面。
+後續仍需真實 Supabase / SQL 權限、Email 重設連結與瀏覽器驗證。
+
+
+## 系統組套管理與密碼流程
+
+追加執行 `006_system_management.sql`（一次性 migration），再以 `007_verify_system_management.sql` 驗證排序持久化、排序衝突、User 無法刪除、至少保留一個組套。驗證脚本在結尾 rollback，尚未在真實資料庫執行。
+
+- Admin 的「系統組套排序／刪除」視窗以按鈕上下移動；儲存前只更動暫存順序。儲存時傳送全庫版本快照，後端在同一交易更新排序。
+- 刪除前顯示共用組套名稱；尚有未儲存排序時先要求儲存或重新開啟視窗。資料庫鎖與 trigger 保護至少一個系統組套，並檢查刪除對象版本。本次處方不清空。
+- 新增組套排在目前清單最後。
+- 在 `js/config.js` 填入 `resetRedirectUrl`，例如正式部署完成後的 `https://hsienht.github.io/Hp-regimen/`。到 Supabase Auth → URL Configuration 將實際網站設為 Site URL，並加入相同網址的 Redirect URLs。測試網站須使用它自己的精確網址，不要讓尚未有新程式的正式網站接收測試重設連結。
+- 登入視窗輸入 Email 後按「忘記密碼」，才呼叫 Supabase 寄送重設信。接收 `PASSWORD_RECOVERY` 事件後顯示新密碼表單；使用者明確提交後以 `updateUser` 修改密碼。一般登入帳號也可按「變更密碼」。
+- 使用 implicit URL session 偵測，讓 Email 連結能在另一分頁開啟；登入 session 放在該分頁的 sessionStorage。Auth 事件 callback 不等待 Auth API，避免 SDK 的鎖造成卡住。
+- 新密碼需重複輸入且至少 8 個字元；Supabase 專案若設定更強密碼政策，仍以服務端驗證為準。明文密碼只在提交時傳給 Auth API，之後清除表單欄位，不進入組套備份／快取。
+- 必須測試真實信件投遞、合法／過期重設連結、重設後登入，以及 Supabase 密碼政策與重設寄信限制。本輪只測試模擬 API，沒有寄送任何真實信件。
+
+官方 Auth API：
+- https://supabase.com/docs/reference/javascript/auth-resetpasswordforemail
+- https://supabase.com/docs/reference/javascript/auth-onauthstatechange
+- https://supabase.com/docs/reference/javascript/auth-updateuser

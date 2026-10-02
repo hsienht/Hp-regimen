@@ -1,7 +1,7 @@
 /* Cloud persistence only accepts explicitly saved configuration templates.
    Current prescription, clinicName and unrelated UI fields are never serialized. */
 const HpCloud = (() => {
-  let client=null, session=null, role='guest', system=[], personal=[], drugRows=[], epoch=0;
+  let client=null, session=null, role='guest', system=[], personal=[], drugRows=[], epoch=0, authEpoch=0, recovery=false, systemDraft=null;
   const config=window.HP_CLOUD_CONFIG||{};
   const enabled=!!(config.url&&config.publishableKey);
   const cacheKey='hp_v3_public_'+config.url;
@@ -53,6 +53,8 @@ const HpCloud = (() => {
     document.getElementById('cloudRestore').hidden=!session;
     document.getElementById('cloudLegacy').hidden=!session;
     document.getElementById('cloudRestoreDrugs').hidden=role!=='admin';
+    document.getElementById('cloudSystemManager').hidden=role!=='admin';
+    document.getElementById('cloudChangePassword').hidden=!session;
     document.getElementById('cloudAccount').textContent=session?`${session.user.email} (${role})`:'訪客';
   }
   async function refresh(){
@@ -82,7 +84,7 @@ const HpCloud = (() => {
     try{localStorage.setItem(cacheKey,JSON.stringify({drugs:DRUGS_DB,regimens:system}));}catch{ /* Online use remains available. */ }
     status('已取得雲端最新版；本次處方修改不會自動上傳');
   }
-  async function action(fn,initializing=false){try{if(!client&&!initializing)throw Error('尚未連接雲端');await fn();}catch(e){status(e.message||'雲端操作失敗；本次處方仍保留');}finally{if(enabled)draw();}}
+  async function action(fn,initializing=false,onError=status){try{if(!client&&!initializing)throw Error('尚未連接雲端');await fn();}catch(e){onError(e.message||'雲端操作失敗；本次處方仍保留');}finally{if(enabled)draw();}}
   async function save(scope,create=false){return action(async()=>{
     if(!session)throw Error('請先登入');if(scope==='system'&&role!=='admin')throw Error('需要 Admin 權限');
     const source=allPresets.find(x=>x.id===activePresetId)?._cloud;
@@ -93,6 +95,7 @@ const HpCloud = (() => {
     const payload={name,regimen_data:template({...R,name})};
     const table=scope==='system'?'system_regimens':'user_regimens';
     if(scope==='user')payload.user_id=session.user.id;
+    if(create)payload.sort_order=Math.max(-1,...(scope==='user'?personal:system).map(r=>r.sort_order||0))+1;
     let result;
     if(create){if(scope==='system')payload.id='custom_'+crypto.randomUUID();result=await client.from(table).insert(payload).select();}
     else result=await client.from(table).update(payload).eq('id',source.id).eq('version',source.version).select();
@@ -114,15 +117,107 @@ const HpCloud = (() => {
     await action(async()=>{
       if(config.publishableKey.startsWith('sb_secret_'))throw Error('請使用公開 publishable key，不能使用 secret key');
       const sdk=await import('https://esm.sh/@supabase/supabase-js@2.117.2');
-      client=sdk.createClient(config.url,config.publishableKey,{auth:{storage:sessionStorage,persistSession:true}});
+      client=sdk.createClient(config.url,config.publishableKey,{auth:{storage:sessionStorage,persistSession:true,detectSessionInUrl:true,flowType:'implicit'}});
       client.auth.onAuthStateChange((event,next)=>{
-        if(event==='SIGNED_OUT'){session=null;role='guest';personal=[];epoch++;apply();status('已登出');}
+        // Do not call asynchronous Auth APIs while the SDK's event lock is held.
+        if(event==='SIGNED_OUT'){
+          session=null;role='guest';personal=[];recovery=false;epoch++;authEpoch++;systemDraft=null;apply();
+          document.getElementById('cloudSystemDialog').close();document.getElementById('cloudPasswordDialog').close();status('已登出');
+        }else if(event==='PASSWORD_RECOVERY'&&next){
+          recovery=true;session=next;role='user';personal=[];epoch++;authEpoch++;apply();
+          document.getElementById('cloudLoginDialog').close();openPassword();
+          setTimeout(()=>action(loadRole),0);
+        }else if(event==='TOKEN_REFRESHED'&&next&&next.user.id===session?.user.id){session=next;}
+        else if(event==='SIGNED_IN'&&next){
+          const generation=authEpoch;
+          setTimeout(()=>{
+            if(generation!==authEpoch||session?.user.id===next.user.id)return;
+            action(async()=>{session=next;role='user';personal=[];epoch++;authEpoch++;apply();await loadRole();await refresh();});
+          },0);
+        }
       });
       session=check(await client.auth.getSession()).session;
-      if(session)role=check(await client.from('profiles').select('role').eq('id',session.user.id).single()).role;
+      if(session)await loadRole();
       await refresh();if(!isDirty)loadPreset(allPresets[0].id);
     },true);
     draw();
+  }
+  async function loadRole(){
+    const userId=session?.user.id,generation=authEpoch;
+    if(!userId){role='guest';return;}
+    const profile=check(await client.from('profiles').select('role').eq('id',userId).single());
+    if(generation===authEpoch&&session?.user.id===userId){role=profile.role;draw();}
+  }
+  function managerRows(){
+    if(!systemDraft)return;
+    const list=document.getElementById('cloudSystemList');list.replaceChildren();
+    systemDraft.order.forEach((id,index)=>{
+      const row=systemDraft.rows.find(r=>r.id===id),item=document.createElement('li');
+      const name=document.createElement('span');name.textContent=row.name;item.append(name);
+      for(const [label,offset] of [['上移',-1],['下移',1]]){
+        const button=document.createElement('button');button.type='button';button.textContent=label;
+        button.disabled=index+offset<0||index+offset>=systemDraft.order.length;
+        button.addEventListener('click',()=>moveSystem(index,offset));item.append(button);
+      }
+      const remove=document.createElement('button');remove.type='button';remove.textContent='刪除';
+      remove.disabled=systemDraft.order.length<=1;remove.addEventListener('click',()=>deleteSystem(id));item.append(remove);list.append(item);
+    });
+  }
+  function openSystem(){try{
+    requireAdmin();systemDraft={rows:dc(system),order:system.map(r=>r.id)};managerRows();document.getElementById('cloudSystemDialog').showModal();
+  }catch(e){status(e.message);}}
+  function moveSystem(index,offset){
+    if(!systemDraft||![-1,1].includes(offset)||!Number.isInteger(index))return;
+    const target=index+offset;if(index<0||index>=systemDraft.order.length||target<0||target>=systemDraft.order.length)return;
+    [systemDraft.order[index],systemDraft.order[target]]=[systemDraft.order[target],systemDraft.order[index]];managerRows();
+  }
+  const versions=rows=>rows.map(r=>({id:r.id,version:r.version})).sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0);
+  async function saveSystemOrder(){return action(async()=>{
+    requireAdmin();if(!systemDraft)throw Error('請先開啟系統組套管理');
+    if(!confirm('確定儲存所有人共用的系統組套順序？'))return;
+    check(await client.rpc('hp_reorder_system_regimens',{ordered_ids:[...systemDraft.order],expected_versions:versions(systemDraft.rows)}));
+    await refresh();openSystem();status('系統組套順序已儲存，本次處方保留');
+  });}
+  async function deleteSystem(id){return action(async()=>{
+    requireAdmin();if(!systemDraft)throw Error('請先開啟系統組套管理');
+    const row=systemDraft.rows.find(r=>r.id===id);if(!row)throw Error('組套不存在');
+    if(systemDraft.rows.length<=1)throw Error('至少需保留一個系統組套');
+    if(systemDraft.order.some((value,index)=>value!==systemDraft.rows[index].id))throw Error('請先儲存排序，或重新開啟管理視窗後再刪除');
+    if(!confirm(`確定刪除共用系統組套「${row.name}」？所有使用者將不再看到此組套，本次處方仍保留。`))return;
+    check(await client.rpc('hp_delete_system_regimen',{regimen_id:id,expected_version:row.version}));
+    await refresh();openSystem();status('系統組套已刪除，本次處方保留');
+  });}
+  function authMessage(message){document.getElementById('cloudAuthStatus').textContent=message;status(message);}
+  function passwordMessage(message){document.getElementById('cloudPasswordStatus').textContent=message;status(message);}
+  async function requestReset(){
+    const email=document.getElementById('cloudLoginForm').elements.email.value.trim();
+    try{
+      if(!client)throw Error('尚未連接雲端');
+      if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw Error('請先輸入有效的 Email');
+      if(!config.resetRedirectUrl)throw Error('尚未設定密碼重設回到的網站網址');
+      const redirect=new URL(config.resetRedirectUrl);if(redirect.protocol!=='https:'||redirect.username||redirect.password||redirect.hash||redirect.search)throw Error('密碼重設網址格式不正確');
+      const button=document.getElementById('cloudResetRequest');button.disabled=true;
+      try{check(await client.auth.resetPasswordForEmail(email,{redirectTo:redirect.href}));authMessage('重設要求已送出；若此帳號可重設密碼，請至信箱開啟連結。');}
+      finally{button.disabled=false;}
+    }catch(e){authMessage(e.message||'無法送出重設要求');}
+  }
+  function openPassword(){
+    if(!session){status('請先登入，或由重設密碼信件的連結進入');return;}
+    const form=document.getElementById('cloudPasswordForm');form.elements.password.value='';form.elements.confirmPassword.value='';
+    document.getElementById('cloudPasswordStatus').textContent=recovery?'請設定新密碼':'請輸入新密碼';
+    const dialog=document.getElementById('cloudPasswordDialog');if(!dialog.open)dialog.showModal();
+  }
+  async function updatePassword(){
+    const form=document.getElementById('cloudPasswordForm'),password=form.elements.password.value,confirmation=form.elements.confirmPassword.value;
+    try{
+      if(!client||!session)throw Error('登入或重設連結已失效，請重新取得連結');
+      if(password.length<8)throw Error('新密碼至少需要 8 個字元');
+      if(password!==confirmation)throw Error('兩次輸入的密碼不一致');
+      const button=document.getElementById('cloudPasswordSubmit');button.disabled=true;
+      try{check(await client.auth.updateUser({password}));recovery=false;form.elements.password.value='';form.elements.confirmPassword.value='';document.getElementById('cloudPasswordDialog').close();status('密碼已更新');}
+      finally{button.disabled=false;}
+    }catch(e){passwordMessage(e.message||'密碼更新失敗');}
+    finally{form.elements.password.value='';form.elements.confirmPassword.value='';}
   }
   function requireAdmin(){if(!session||role!=='admin')throw Error('需要 Admin 權限');}
   function openDrugs(){try{requireAdmin();dmOrigData=dc(DRUGS_DB);dmData=dc(DRUGS_DB);dmOpenIdx=null;dmDirty=false;renderDmList();syncDmBtns();document.getElementById('drugPanel').classList.add('open');document.getElementById('mainContent').style.display='none';}catch(e){status(e.message);}}
@@ -182,16 +277,17 @@ const HpCloud = (() => {
     await persistDrugs(merged);status('已由備份更新共用藥品檔');
   });}
   return {enabled,template,start,refresh:()=>action(refresh),save,remove,openDrugs,saveDrugs,backup,restoreText,restoreFile,restoreDrugFile,importLegacy,
+    openSystem,moveSystem,saveSystemOrder,deleteSystem,requestReset,openPassword,updatePassword,
     isAdmin:()=>!!session&&role==='admin',
     restore:()=>document.getElementById('cloudRestoreDialog').showModal(),
-    login:()=>document.getElementById('cloudLoginDialog').showModal(),
+    login:()=>{document.getElementById('cloudAuthStatus').textContent='';document.getElementById('cloudLoginDialog').showModal();},
     signIn:()=>action(async()=>{
       const form=document.getElementById('cloudLoginForm');const email=form.elements.email.value,password=form.elements.password.value;
       form.elements.password.value='';
       session=check(await client.auth.signInWithPassword({email,password})).session;role='user';personal=[];epoch++;apply();
-      role=check(await client.from('profiles').select('role').eq('id',session.user.id).single()).role;
+      authEpoch++;await loadRole();
       document.getElementById('cloudLoginDialog').close();await refresh();draw();
-    }),
-    logout:()=>action(async()=>{check(await client.auth.signOut());session=null;role='guest';personal=[];epoch++;apply();status('已登出；個人組套已移除');})};
+    },false,authMessage),
+    logout:()=>action(async()=>{check(await client.auth.signOut());session=null;role='guest';personal=[];recovery=false;epoch++;authEpoch++;systemDraft=null;apply();document.getElementById('cloudSystemDialog').close();document.getElementById('cloudPasswordDialog').close();status('已登出；個人組套已移除');})};
 })();
 HpCloud.start();

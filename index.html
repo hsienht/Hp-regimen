@@ -63,6 +63,8 @@
       <button class="btn btn-sm" id="cloudSavePersonal" hidden onclick="HpCloud.save('user')">更新我的組套</button>
       <button class="btn btn-sm" id="cloudDeletePersonal" hidden onclick="HpCloud.remove()">刪除我的組套</button>
       <button class="btn btn-sm" id="cloudSaveSystem" hidden onclick="HpCloud.save('system')">更新系統組套</button>
+      <button class="btn btn-sm" id="cloudSystemManager" hidden onclick="HpCloud.openSystem()">系統組套排序／刪除</button>
+      <button class="btn btn-sm" id="cloudChangePassword" hidden onclick="HpCloud.openPassword()">變更密碼</button>
       <button class="btn btn-sm" id="cloudNewSystem" hidden onclick="HpCloud.save('system',true)">新增系統組套</button>
       <button class="btn btn-sm" id="cloudBackup" hidden onclick="HpCloud.backup()">匯出設定備份</button>
       <button class="btn btn-sm" id="cloudRestore" hidden onclick="HpCloud.restore()">匯入設定</button>
@@ -132,7 +134,9 @@
     <h3>登入</h3>
     <label>Email <input name="email" type="email" autocomplete="username" required></label>
     <label>密碼 <input name="password" type="password" autocomplete="current-password" required></label>
+    <p id="cloudAuthStatus" role="status"></p>
     <button type="submit">登入</button>
+    <button type="button" id="cloudResetRequest" onclick="HpCloud.requestReset()">忘記密碼</button>
     <button type="button" onclick="document.getElementById('cloudLoginDialog').close()">取消</button>
   </form>
 </dialog>
@@ -149,6 +153,23 @@
   <button type="button" onclick="HpCloud.restoreFile()">檢查並匯入組套</button>
   <button type="button" id="cloudRestoreDrugs" hidden onclick="HpCloud.restoreDrugFile()">Admin：由此備份更新共用藥品檔</button>
   <button type="button" onclick="document.getElementById('cloudRestoreDialog').close()">關閉</button>
+</dialog>
+<dialog id="cloudSystemDialog">
+  <h3>系統組套管理</h3>
+  <p>排序儲存後供所有人使用。刪除前會再次確認，至少保留一個系統組套。</p>
+  <ol id="cloudSystemList"></ol>
+  <button type="button" onclick="HpCloud.saveSystemOrder()">儲存排序</button>
+  <button type="button" onclick="document.getElementById('cloudSystemDialog').close()">關閉</button>
+</dialog>
+<dialog id="cloudPasswordDialog">
+  <form id="cloudPasswordForm" onsubmit="event.preventDefault();HpCloud.updatePassword()">
+    <h3>設定新密碼</h3>
+    <label>新密碼 <input type="password" name="password" minlength="8" autocomplete="new-password" required></label>
+    <label>再次輸入 <input type="password" name="confirmPassword" minlength="8" autocomplete="new-password" required></label>
+    <p id="cloudPasswordStatus" role="status"></p>
+    <button type="submit" id="cloudPasswordSubmit">更新密碼</button>
+    <button type="button" onclick="document.getElementById('cloudPasswordDialog').close()">取消</button>
+  </form>
 </dialog>
 <script src="js/transfer.js"></script>
 <script src="js/cloud.js"></script>

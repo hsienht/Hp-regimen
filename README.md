@@ -41,3 +41,8 @@
 ### 管理與備份更新
 
 已加入 Admin 藥品管理、設定 JSON 備份／個人組套合併或取代匯入、此瀏覽器舊版設定匯入。需追加 `supabase/004_management.sql`；`005_verify_management.sql` 用於驗證交易回滾、規格保護及匯入版本衝突。所有資料庫脚本仍需在真實專案驗證。
+
+
+### 系統組套排序／刪除及密碼流程
+
+已加入 Admin 系統組套排序與刪除、訪客忘記密碼、Email 連結回到的新密碼表單，以及登入後變更密碼。需追加 `supabase/006_system_management.sql`，並設定 `resetRedirectUrl` 與 Supabase Auth 的 URL Configuration；詳見 SETUP。尚未執行真實 Email／SQL／瀏覽器驗證。
