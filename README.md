@@ -37,3 +37,7 @@
 `js/config.js` 預設留空，因此本機模式保持可用。填入公開專案連線設定後啟用 `js/cloud.js` 的登入、系統／個人組套與公開快取。資料庫 schema、seed、RLS 驗證與未完成項目見 [supabase/SETUP.md](supabase/SETUP.md)。
 
 執行全部本機測試：`node --test tests/*.test.cjs`。真實 Supabase 與瀏覽器驗證尚未完成。
+
+### 管理與備份更新
+
+已加入 Admin 藥品管理、設定 JSON 備份／個人組套合併或取代匯入、此瀏覽器舊版設定匯入。需追加 `supabase/004_management.sql`；`005_verify_management.sql` 用於驗證交易回滾、規格保護及匯入版本衝突。所有資料庫脚本仍需在真實專案驗證。

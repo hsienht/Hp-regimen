@@ -1,5 +1,5 @@
 function cloudConfigured(){const c=window.HP_CLOUD_CONFIG;return !!(c&&c.url&&c.publishableKey);}
-function localOnlyGuard(){if(!cloudConfigured())return false;alert('雲端模式請使用「我的組套／系統組套」儲存按鈕。藥品管理介面將在下一階段開放。');return true;}
+function localOnlyGuard(){if(!cloudConfigured())return false;alert('雲端模式請使用「我的組套／系統組套」儲存按鈕。共用藥品需由管理者維護。');return true;}
 // ═══════════════════════════════════════════════
 //  STATIC SIDE EFFECTS DATA
 // ═══════════════════════════════════════════════
@@ -242,8 +242,8 @@ function renderDrugRow(pi,di){
   const isOpen=openIconEd===edKey;
   const icon=resolveIcon(e.drugId,e.icon);
 
-  const drugOpts=DRUGS_DB.filter(d=>!d.deleted).map(d=>`<option value="${d.id}"${d.id===e.drugId?' selected':''}>${d.name}</option>`).join('');
-  const subOpts=(drug?.subtypes||['未知']).map((s,i)=>`<option value="${i}"${e.subtype===i?' selected':''}>${s}</option>`).join('');
+  const drugOpts=DRUGS_DB.filter(d=>!d.deleted).map(d=>`<option value="${d.id}"${d.id===e.drugId?' selected':''}>${esc(d.name)}</option>`).join('');
+  const subOpts=(drug?.subtypes||['未知']).map((s,i)=>`<option value="${i}"${e.subtype===i?' selected':''}>${esc(s)}</option>`).join('');
   const freqBtns=[1,2,3,4].map(f=>`<button class="freq-btn${e.freq===f?' active':''}" onclick="setFreq(${pi},${di},${f})">${f}x</button>`).join('');
   const pillOpts=PILL_COUNTS.map(v=>`<option value="${v}"${e.pills===v?' selected':''}>${v}</option>`).join('');
   const chips=TIME_SLOTS.map(sl=>`<label class="time-lbl"><input type="checkbox"${times.includes(sl.id)?' checked':''} onchange="toggleTime(${pi},${di},'${sl.id}',this.checked)"><span class="time-chip">${sl.label}</span></label>`).join('');
@@ -291,8 +291,8 @@ function renderPreview(){
   const empty=R.phases.every(ph=>ph.drugs.length===0);
 
   const thead=`<tr><th>療程</th><th>藥物</th>${TIME_SLOTS.map(s=>`<th>${s.label}</th>`).join('')}</tr>`;
-  const fmtReg=n=>n.replace(/\s*\(/,'<br>(');
-  const fmtDrug=(e)=>{const db=getDB(e.drugId);const nm=e.customName||db?.name||e.drugId;const dose=db?.subtypes?.[e.subtype];return dose?`<span class="drug-nm">${nm}</span><br><span class="drug-dose">(${dose})</span>`:`<span class="drug-nm">${nm}</span>`;};
+  const fmtReg=n=>esc(n).replace(/\s*\(/,'<br>(');
+  const fmtDrug=(e)=>{const db=getDB(e.drugId);const nm=e.customName||db?.name||e.drugId;const dose=db?.subtypes?.[e.subtype];return dose?`<span class="drug-nm">${esc(nm)}</span><br><span class="drug-dose">(${esc(dose)})</span>`:`<span class="drug-nm">${esc(nm)}</span>`;};
   let tbody='';
 
   if(empty){paper.innerHTML=`<div class="preview-title">幽門桿菌治療 服藥指南</div><div class="empty-hint">請選擇組套或新增藥物</div>`;return;}
@@ -321,12 +321,12 @@ function renderPreview(){
   }
 
   // Notes (left-aligned individual lines)
-  const notesH=notes?`<div class="notes-sec"><div class="notes-title">提醒事項：</div>${notes.split('\n').filter(l=>l.trim()).map(l=>`<div class="notes-line">${l.trim()}</div>`).join('')}</div>`:'';
+  const notesH=notes?`<div class="notes-sec"><div class="notes-title">提醒事項：</div>${notes.split('\n').filter(l=>l.trim()).map(l=>`<div class="notes-line">${esc(l.trim())}</div>`).join('')}</div>`:'';
 
   // Drug special notes (藥品特殊囑言) in preset drug order, skip empty
   const drugOrder=[];const seen=new Set();
   R.phases.forEach(ph=>ph.drugs.forEach(e=>{if(!seen.has(e.drugId)){seen.add(e.drugId);drugOrder.push(e);}}));
-  const snLines=drugOrder.map(e=>{const db=getDB(e.drugId);const n=(db?.note||'').trim();if(!n)return'';const nm=e.customName||db?.name||e.drugId;return`<div class="special-notes-line">【${nm}】${n}</div>`;}).filter(Boolean);
+  const snLines=drugOrder.map(e=>{const db=getDB(e.drugId);const n=(db?.note||'').trim();if(!n)return'';const nm=e.customName||db?.name||e.drugId;return`<div class="special-notes-line">【${esc(nm)}】${esc(n)}</div>`;}).filter(Boolean);
   const specialNotesH=snLines.length?`<div class="special-notes-sec"><div class="special-notes-title">藥品特殊囑言：</div>${snLines.join('')}</div>`:'';
 
   // Side effects preview (screen only, not printed) — linked to current preset
@@ -338,7 +338,7 @@ function renderPreview(){
     <div class="icon-footnote">※ 藥品圖示可能與實際藥品外觀不同</div>
     ${notesH}
     ${specialNotesH}
-    <div class="footer-bar"><span>療程天數：<strong>${dur}</strong> 天</span>${clinic?`<span>${clinic}</span>`:'<span></span>'}</div>
+    <div class="footer-bar"><span>療程天數：<strong>${esc(String(dur))}</strong> 天</span>${clinic?`<span>${esc(clinic)}</span>`:'<span></span>'}</div>
     ${sePreviewH}`;
 }
 
@@ -629,7 +629,7 @@ function mgrRevert(){
 let dmDirty=false;
 
 function openDrugMgr(){
-  if(localOnlyGuard())return;
+  if(cloudConfigured())return HpCloud.openDrugs();
   dmOrigData=dc(DRUGS_DB);dmData=dc(DRUGS_DB);dmOpenIdx=null;dmDirty=false;
   renderDmList();syncDmBtns();
   document.getElementById('drugPanel').classList.add('open');
@@ -654,7 +654,7 @@ function renderDmList(){
   el.innerHTML=dmData.map((d,i)=>{
     const isOpen=dmOpenIdx===i;
     const sub=(d.subtypes||[]).map((s,si)=>`<div class="dm-subtype-row">
-      <input class="dm-subtype-input" value="${esc(s)}" oninput="dmEditSubtype(${i},${si},this.value)">
+      <input class="dm-subtype-input" value="${esc(s)}" ${cloudConfigured()&&si<(dmOrigData.find(x=>x.id===d.id)?.subtypes.length||0)?'readonly':''} oninput="dmEditSubtype(${i},${si},this.value)">
       <button class="dm-subtype-del" onclick="dmDelSubtype(${i},${si})">×</button>
     </div>`).join('');
     const shBtns=SHAPES.map(s=>`<button class="shape-btn${d.shape===s.id?' active':''}" onclick="dmSetShape(${i},'${s.id}')">${s.label}</button>`).join('');
@@ -691,6 +691,7 @@ function dmEditName(i,v){if(dmData[i]){dmData[i].name=v;dmDirty=true;syncDmBtns(
 function dmEditSubtype(i,si,v){if(dmData[i]){dmData[i].subtypes[si]=v;dmDirty=true;syncDmBtns();}}
 function dmDelSubtype(i,si){
   if(!dmData[i])return;
+  if(cloudConfigured()&&si<(dmOrigData.find(d=>d.id===dmData[i].id)?.subtypes.length||0)){alert('既有規格不能刪除，可新增規格。');return;}
   const used=allPresets.filter(p=>p.phases.some(ph=>ph.drugs.some(d=>d.drugId===dmData[i].id&&(d.subtype||0)===si)));
   if(used.length>0){alert(`以下組套正在使用「${dmData[i].name}」此劑量選項，無法刪除：\n${used.map(p=>p.name).join('\n')}`);return;}
   dmData[i].subtypes.splice(si,1);dmDirty=true;syncDmBtns();renderDmList();
@@ -701,6 +702,7 @@ function dmSetColor(i,c,isSec){if(dmData[i]){if(isSec)dmData[i].color2=c;else dm
 function dmSetColorHex(i,v,isSec){if(/^#[0-9a-fA-F]{6}$/.test(v))dmSetColor(i,v,isSec);}
 function dmToggleDel(i){
   if(!dmData[i])return;
+  if(cloudConfigured()&&dmOrigData.some(d=>d.id===dmData[i].id)){alert('共用既有藥品不能刪除，以保護其他使用者的組套。');return;}
   if(dmData[i].deleted){
     dmData[i].deleted=false;dmDirty=true;syncDmBtns();renderDmList();return;
   }
@@ -716,6 +718,7 @@ function dmAddDrug(){
   dmOpenIdx=dmData.length-1;dmDirty=true;syncDmBtns();renderDmList();
 }
 function saveDrugMgr(silent){
+  if(cloudConfigured())return HpCloud.saveDrugs();
   for(const d of dmData){
     if(d.deleted)continue;
     if(!(d.name||'').trim()){alert('藥品名稱不可為空，請填寫後再儲存。');return false;}
@@ -729,6 +732,10 @@ function saveDrugMgr(silent){
   return true;
 }
 function cancelDrugMgr(){
+  if(cloudConfigured()){
+    if(dmDirty){if(confirm('藥品設定有修改，是否儲存到雲端？'))return HpCloud.saveDrugs();return;}
+    closeDrugMgr();return;
+  }
   if(dmDirty){
     const ans=confirm('藥品管理有未儲存的修改，是否儲存？');
     if(ans){if(!saveDrugMgr(true))return;closeDrugMgr();return;}
@@ -755,7 +762,7 @@ function buildSeBlocks(allDrugs){
     const db=getDB(e.drugId);const nm=e.customName||db?.name||e.drugId;
     const sub=se.subtitle?`<div style="font-size:11px;color:#888;font-style:italic;margin-bottom:6px">${se.subtitle}</div>`:'';
     const sects=se.sections.map(s=>`<div class="se-sub">▸ ${s.title}</div>`+s.items.map((it,idx)=>`<div class="se-item">${idx+1}. ${it}</div>`).join('')).join('');
-    return`<div class="se-drug-block"><div class="se-drug-hdr">${se.name||nm}</div>${sub}${sects}</div>`;
+    return`<div class="se-drug-block"><div class="se-drug-hdr">${esc(se.name||nm)}</div>${sub}${sects}</div>`;
   }).filter(Boolean).join('');
 }
 function openSeOverlay(){

@@ -213,3 +213,6 @@ body{font-family:'PingFang TC','Noto Sans TC','Microsoft JhengHei',sans-serif;ba
 
 .cloud-actions{display:flex;gap:6px;flex-wrap:wrap}#cloudPanel{padding:10px;border:1px solid #ddd;border-radius:8px;margin:10px 0;font-size:12px}#cloudLoginForm label{display:block;margin:12px 0}#cloudLoginDialog{border:1px solid #ddd;border-radius:12px;max-width:90vw} [hidden]{display:none!important}
 @media print{#cloudPanel,#cloudLoginDialog{display:none!important}}
+
+#cloudRestoreDialog{border:1px solid #ddd;border-radius:12px;max-width:90vw;padding:20px}#cloudRestoreDialog label{display:block;margin:12px 0}
+@media print{#cloudRestoreDialog{display:none!important}}

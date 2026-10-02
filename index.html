@@ -45,7 +45,7 @@
   <div class="panel-title">⚕ 幽門桿菌治療設定
     <span style="margin-left:auto;display:flex;gap:6px">
       <button class="btn btn-sm" id="resetDefaultsBtn" onclick="resetToDefaults()">恢復預設</button>
-      <button class="btn btn-sm" onclick="openDrugMgr()">藥品管理</button>
+      <button class="btn btn-sm" id="cloudDrugManager" onclick="openDrugMgr()">藥品管理</button>
       <button class="btn btn-sm" id="mgrToggleBtn" onclick="toggleMgr()">組套管理 ▾</button>
     </span>
   </div>
@@ -64,6 +64,9 @@
       <button class="btn btn-sm" id="cloudDeletePersonal" hidden onclick="HpCloud.remove()">刪除我的組套</button>
       <button class="btn btn-sm" id="cloudSaveSystem" hidden onclick="HpCloud.save('system')">更新系統組套</button>
       <button class="btn btn-sm" id="cloudNewSystem" hidden onclick="HpCloud.save('system',true)">新增系統組套</button>
+      <button class="btn btn-sm" id="cloudBackup" hidden onclick="HpCloud.backup()">匯出設定備份</button>
+      <button class="btn btn-sm" id="cloudRestore" hidden onclick="HpCloud.restore()">匯入設定</button>
+      <button class="btn btn-sm" id="cloudLegacy" hidden onclick="HpCloud.importLegacy()">匯入此瀏覽器舊設定</button>
     </div>
     <p>本次處方僅在此頁面編輯。按下雲端儲存才會更新組套。</p>
   </section>
@@ -137,6 +140,17 @@
 <script src="js/defaults.js"></script>
 <script src="js/storage.js"></script>
 <script src="js/app.js"></script>
+<dialog id="cloudRestoreDialog">
+  <h3>匯入設定</h3>
+  <p>匯入為目前帳號的個人組套。缺少藥品規格時會停止匯入。</p>
+  <input id="cloudRestoreFile" type="file" accept=".json,application/json">
+  <label>匯入方式 <select id="cloudRestoreMode"><option value="merge">合併：保留現有同名組套</option><option value="replace">取代：替換所有個人組套</option></select></label>
+  <label><input type="checkbox" id="cloudIncludeSystem">也將備份中的系統組套加入我的組套</label>
+  <button type="button" onclick="HpCloud.restoreFile()">檢查並匯入組套</button>
+  <button type="button" id="cloudRestoreDrugs" hidden onclick="HpCloud.restoreDrugFile()">Admin：由此備份更新共用藥品檔</button>
+  <button type="button" onclick="document.getElementById('cloudRestoreDialog').close()">關閉</button>
+</dialog>
+<script src="js/transfer.js"></script>
 <script src="js/cloud.js"></script>
 </body>
 </html>
