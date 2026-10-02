@@ -4,7 +4,7 @@ const fs=require('node:fs');
 const vm=require('node:vm');
 function boot(seed={}) {
   const saved=new Map(Object.entries(seed));
-  const ctx=vm.createContext({localStorage:{getItem:k=>saved.get(k)||null,setItem:(k,v)=>saved.set(k,v)}});
+  const ctx=vm.createContext({window:{},localStorage:{getItem:k=>saved.get(k)||null,setItem:(k,v)=>saved.set(k,v)}});
   for(const path of ['js/defaults.js','js/storage.js']) vm.runInContext(fs.readFileSync(path,'utf8'),ctx);
   return {saved,run:s=>vm.runInContext(s,ctx)};
 }

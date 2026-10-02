@@ -1,3 +1,5 @@
+function cloudConfigured(){const c=window.HP_CLOUD_CONFIG;return !!(c&&c.url&&c.publishableKey);}
+function localOnlyGuard(){if(!cloudConfigured())return false;alert('雲端模式請使用「我的組套／系統組套」儲存按鈕。藥品管理介面將在下一階段開放。');return true;}
 // ═══════════════════════════════════════════════
 //  STATIC SIDE EFFECTS DATA
 // ═══════════════════════════════════════════════
@@ -152,6 +154,7 @@ function syncResetBtn(){
   else{btn.className='btn btn-sm warn';btn.disabled=false;}
 }
 function resetToDefaults(){
+  if(localOnlyGuard())return;
   if(!confirm('確定要將所有組套與藥品恢復預設值嗎？（所有自訂內容將遺失）'))return;
   allPresets=dc(DEFAULT_PRESETS);savePresets();
   DRUGS_DB=dc(DEFAULT_DRUGS);saveDrugs();
@@ -187,12 +190,12 @@ function syncFormToR(){
 function renderPresets(){
   const grid=document.getElementById('presetGrid');
   grid.innerHTML=allPresets.map(p=>
-    `<button class="preset-btn${activePresetId===p.id?' active':''}" onclick="confirmLoadPreset('${p.id}')">${p.name.replace(/（[^）]*）/g,'').replace(/\([^)]*\)/g,'').trim()}</button>`
+    `<button class="preset-btn${activePresetId===p.id?' active':''}" onclick="confirmLoadPreset('${p.id}')">${esc(p.name.replace(/（[^）]*）/g,'').replace(/\([^)]*\)/g,'').trim())}${p._cloud?(p._cloud.scope==='user'?' · 我的':' · 系統'):''}</button>`
   ).join('')+`<button class="preset-btn${!activePresetId?' active':''}" onclick="setCustomMode()">自訂組合</button>`;
 }
 
 function syncDirtyBtns(){
-  document.getElementById('saveModBtn').style.display=(isDirty&&activePresetId)?'':'none';
+  document.getElementById('saveModBtn').style.display=(isDirty&&activePresetId&&!cloudConfigured())?'':'none';
   document.getElementById('revertBtn').style.display=isDirty?'':'none';
 }
 function rMatchesSaved(){
@@ -344,7 +347,8 @@ function renderPreview(){
 // ═══════════════════════════════════════════════
 function confirmLoadPreset(id){
   if(isDirty){
-    if(activePresetId){
+    if(cloudConfigured()){if(!confirm('切換組套將放棄本次修改，確定繼續？'))return;}
+    else if(activePresetId){
       if(confirm(`「${getPresetName(activePresetId)}」有未儲存的修改，是否儲存？`))saveCurrentPreset(true);
       else return;
     }else{
@@ -385,6 +389,7 @@ function setCustomMode(){
 }
 
 function saveCurrentPreset(silent){
+  if(localOnlyGuard())return;
   const p=allPresets.find(x=>x.id===activePresetId);if(!p)return;
   if(R.isPhased&&R.phases.some(ph=>ph.drugs.length===0)){alert('兩階段療程的每個階段都需要至少一種藥物。');return;}
   const snap=dc(R);
@@ -414,6 +419,7 @@ function revertToLastSaved(){
 }
 
 function saveAsNewPreset(){
+  if(localOnlyGuard())return;
   const name=(document.getElementById('regimenName').value||'').trim();
   if(!name){alert('請先輸入療程名稱。');return;}
   if(allPresets.some(p=>p.name===name)){alert(`已有相同名稱的組套「${name}」，請使用不同名稱。`);return;}
@@ -504,7 +510,8 @@ function setPhaseDur(val){
 // ═══════════════════════════════════════════════
 //  PRESET MANAGER
 // ═══════════════════════════════════════════════
-function toggleMgr(){if(showMgr)closeMgr();else openMgr();}
+function toggleMgr(){
+  if(localOnlyGuard())return;if(showMgr)closeMgr();else openMgr();}
 
 function openMgr(){
   showMgr=true;
@@ -622,6 +629,7 @@ function mgrRevert(){
 let dmDirty=false;
 
 function openDrugMgr(){
+  if(localOnlyGuard())return;
   dmOrigData=dc(DRUGS_DB);dmData=dc(DRUGS_DB);dmOpenIdx=null;dmDirty=false;
   renderDmList();syncDmBtns();
   document.getElementById('drugPanel').classList.add('open');

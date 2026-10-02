@@ -22,9 +22,9 @@ const HpStorage = (() => {
 // ═══════════════════════════════════════════════
 function dc(x){return JSON.parse(JSON.stringify(x));}
 
-let DRUGS_DB=(()=>{try{const s4=HpStorage.read('hp_drugs_v4');if(s4){const d=JSON.parse(s4);if(Array.isArray(d)&&d.length)return d;}const sold=HpStorage.read('hp_drugs_v3')||HpStorage.read('hp_drugs_v2');if(sold){const d=JSON.parse(sold);if(Array.isArray(d)&&d.length){d.forEach(dr=>{const def=DEFAULT_DRUGS.find(x=>x.id===dr.id);if(def)dr.note=def.note;});// Re-sort to match DEFAULT_DRUGS order
+let DRUGS_DB=(()=>{if(window.HP_CLOUD_CONFIG?.url&&window.HP_CLOUD_CONFIG?.publishableKey)return dc(DEFAULT_DRUGS);try{const s4=HpStorage.read('hp_drugs_v4');if(s4){const d=JSON.parse(s4);if(Array.isArray(d)&&d.length)return d;}const sold=HpStorage.read('hp_drugs_v3')||HpStorage.read('hp_drugs_v2');if(sold){const d=JSON.parse(sold);if(Array.isArray(d)&&d.length){d.forEach(dr=>{const def=DEFAULT_DRUGS.find(x=>x.id===dr.id);if(def)dr.note=def.note;});// Re-sort to match DEFAULT_DRUGS order
 const sorted=DEFAULT_DRUGS.map(def=>d.find(dr=>dr.id===def.id)).filter(Boolean);d.filter(dr=>!DEFAULT_DRUGS.find(def=>def.id===dr.id)).forEach(dr=>sorted.push(dr));return sorted;}}}catch{}return dc(DEFAULT_DRUGS);})();
-let allPresets=(()=>{try{const s7=HpStorage.read('hp_presets_v7');if(s7){const p=JSON.parse(s7);if(Array.isArray(p)&&p.length)return p;}// Migrate: use fresh defaults, append custom presets from v6
+let allPresets=(()=>{if(window.HP_CLOUD_CONFIG?.url&&window.HP_CLOUD_CONFIG?.publishableKey)return dc(DEFAULT_PRESETS);try{const s7=HpStorage.read('hp_presets_v7');if(s7){const p=JSON.parse(s7);if(Array.isArray(p)&&p.length)return p;}// Migrate: use fresh defaults, append custom presets from v6
 const base=dc(DEFAULT_PRESETS);const builtinIds=new Set(base.map(x=>x.id));const s6=HpStorage.read('hp_presets_v6');if(s6){const old=JSON.parse(s6);if(Array.isArray(old))old.forEach(p=>{if(!builtinIds.has(p.id))base.push(p);});}return base;}catch{}return dc(DEFAULT_PRESETS);})();
 
 function saveDrugs(){HpStorage.write('hp_drugs_v4',DRUGS_DB);}
