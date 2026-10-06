@@ -782,6 +782,24 @@ function closeSeOverlay(){
 // ═══════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════
+// View switching never reloads a regimen or changes prescription data.
+const mobilePaneScroll={edit:0,previewTop:0,previewLeft:0};
+function setMobilePreview(show){
+  const app=document.querySelector('.app');
+  const editor=document.querySelector('.input-panel');
+  const preview=document.getElementById('previewPanel');
+  const wasPreview=app.classList.contains('mobile-preview');
+  if(wasPreview===show)return;
+  if(show){mobilePaneScroll.edit=editor.scrollTop;}
+  else{mobilePaneScroll.previewTop=preview.scrollTop;mobilePaneScroll.previewLeft=preview.scrollLeft;}
+  app.classList.toggle('mobile-preview',show);
+  document.getElementById('mobilePreviewBtn').hidden=show;
+  document.getElementById('mobilePreviewBtn').setAttribute('aria-expanded',String(show));
+  document.getElementById('mobileEditBtn').hidden=!show;
+  document.getElementById('mobilePrintBtn').hidden=!show;
+  if(show){preview.scrollTop=mobilePaneScroll.previewTop;preview.scrollLeft=mobilePaneScroll.previewLeft;document.getElementById('mobileEditBtn').focus({preventScroll:true});}
+  else{editor.scrollTop=mobilePaneScroll.edit;document.getElementById('mobilePreviewBtn').focus({preventScroll:true});}
+}
 addUids(R);
 document.getElementById('clinicName').addEventListener('input',renderPreview);
 loadPreset(allPresets[0]?.id);

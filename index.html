@@ -8,6 +8,11 @@
 </head>
 <body>
 <div class="app">
+<nav class="mobile-preview-toolbar" aria-label="手機處方檢視">
+  <button class="btn btn-sm primary" id="mobilePreviewBtn" type="button" aria-controls="previewPanel" aria-expanded="false" onclick="setMobilePreview(true)">查看預覽</button>
+  <button class="btn btn-sm" id="mobileEditBtn" type="button" hidden onclick="setMobilePreview(false)">返回編輯</button>
+  <button class="btn btn-sm" id="mobilePrintBtn" type="button" hidden onclick="window.print()">列印 / 儲存 PDF</button>
+</nav>
 
 <!-- ══ INPUT PANEL ══ -->
 <div class="input-panel">
@@ -111,7 +116,7 @@
 </div><!-- input-panel -->
 
 <!-- ══ PREVIEW PANEL ══ -->
-<div class="preview-panel">
+<div class="preview-panel" id="previewPanel" tabindex="-1" aria-label="處方預覽">
   <div class="preview-paper" id="previewPaper">
     <div class="preview-title">幽門桿菌治療 服藥指南</div>
     <div class="empty-hint">請選擇組套或新增藥物</div>

@@ -1,6 +1,7 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'PingFang TC','Noto Sans TC','Microsoft JhengHei',sans-serif;background:#eef2f7;color:#333;min-height:100vh}
 .app{display:flex;height:100vh;overflow:hidden;position:relative}
+.mobile-preview-toolbar{display:none}
 
 /* ── Input Panel ── */
 .input-panel{width:430px;min-width:390px;background:#fff;padding:0;overflow-y:auto;border-right:1px solid #dde3ef;display:flex;flex-direction:column;height:100vh}
@@ -201,9 +202,26 @@ body{font-family:'PingFang TC','Noto Sans TC','Microsoft JhengHei',sans-serif;ba
 .dm-note-ta:focus{outline:none;border-color:#5c6bc0}
 .panel-sub-row{display:flex;justify-content:flex-end;margin-bottom:6px}
 
+/* Mobile uses one pane at a time; the prescription DOM stays mounted. */
+@media screen and (max-width:1000px){
+  .app{height:100vh;height:100dvh;padding-top:58px}
+  .mobile-preview-toolbar{display:flex;position:absolute;top:0;left:0;right:0;height:58px;align-items:center;gap:8px;padding:8px 12px;background:#fff;border-bottom:1px solid #dde3ef;z-index:20}
+  .mobile-preview-toolbar .btn{min-height:40px;font-size:14px}
+  .input-panel{width:100%;min-width:0;height:100%;border-right:0}
+  .panel-inner{padding:14px;min-width:0}
+  .panel-title{flex-wrap:wrap}
+  .preview-panel{display:none;width:100%;min-width:0;height:100%;padding:12px;overflow:auto;align-items:flex-start}
+  .preview-paper{width:900px;min-width:900px;max-width:none;flex-shrink:0}
+  .app.mobile-preview .input-panel{display:none}
+  .app.mobile-preview .preview-panel{display:flex}
+  .side-effects-overlay{padding:20px 16px}
+}
+
 @media print{
+  .mobile-preview-toolbar{display:none!important}
+  .app{display:block;height:auto;overflow:visible;padding-top:0}
   .input-panel{display:none!important}
-  .preview-panel{padding:0;background:white}
+  .preview-panel{display:flex!important;height:auto;overflow:visible;padding:0;background:white}
   .preview-paper{box-shadow:none;border-radius:0;padding:28px;max-width:100%}
   body{background:white}
   .se-preview{display:none!important}
