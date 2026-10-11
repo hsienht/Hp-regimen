@@ -28,7 +28,7 @@ const HpTransfer=(()=>{
         if(index===undefined||index<0)throw Error(`缺少藥品規格：${strength||d.drugId}。請先由管理者補齊藥品檔。`);
         d.subtype=index;
       });});
-      const clean=HpCloud.template(p,target);
+      const clean=HpCloud.template(p,target);clean.name=clean.name.trim();
       if(!clean.name.trim())throw Error('組套名稱不可為空');
       if(!allowDuplicateNames&&names.has(clean.name))throw Error(`匯入檔有重複組套名稱：${clean.name}`);names.add(clean.name);
       return clean;
@@ -37,14 +37,28 @@ const HpTransfer=(()=>{
   function parse(raw){
     if(typeof raw!=='string'||new TextEncoder().encode(raw).length>MAX_BYTES)throw Error('備份檔不得超過 2 MB');
     const data=JSON.parse(raw);
-    if(!data||data.format!=='hp-regimen-settings'||data.schemaVersion!==1)throw Error('不支援的備份格式或版本');
+    if(!data||data.format!=='hp-regimen-settings'||![1,2].includes(data.schemaVersion))throw Error('不支援的備份格式或版本');
     data.drugs=catalog(data.drugs);
     if(!Array.isArray(data.personalRegimens)||data.personalRegimens.length>100)throw Error('個人組套格式不正確');
+    data.favorites=favoriteRefs(data.favorites||[]);
     return data;
   }
-  function build(drugs,personal,system=[]){
+  function favoriteRefs(items){
+    if(!Array.isArray(items)||items.length>200)throw Error('常用清單格式不正確');
+    return items.map(x=>{if(!x||!['system','user'].includes(x.scope)||typeof x.name!=='string'||!x.name.trim()||x.name.length>200)throw Error('常用項目格式不正確');return {scope:x.scope,name:x.name.trim()};});
+  }
+  function resolveFavorites(refs,presets){
+    const found=[],missing=[];
+    for(const ref of favoriteRefs(refs)){
+      const matches=presets.filter(p=>p._cloud?.scope===ref.scope&&p.name.trim()===ref.name);
+      if(matches.length!==1){missing.push(ref);continue;}
+      if(!found.some(x=>x.scope===ref.scope&&x.id===matches[0]._cloud.id))found.push({scope:ref.scope,id:matches[0]._cloud.id});
+    }
+    return {found,missing};
+  }
+  function build(drugs,personal,system=[],favorites=[]){
     const cleanDrugs=catalog(drugs);
-    return {format:'hp-regimen-settings',schemaVersion:1,exportedAt:new Date().toISOString(),drugs:cleanDrugs,
+    return {format:'hp-regimen-settings',schemaVersion:2,favorites:favoriteRefs(favorites),exportedAt:new Date().toISOString(),drugs:cleanDrugs,
       personalRegimens:prepare(personal,cleanDrugs,cleanDrugs,true),systemRegimens:prepare(system,cleanDrugs,cleanDrugs,true)};
   }
   function download(data){
@@ -57,5 +71,5 @@ const HpTransfer=(()=>{
       const from=backup.find(x=>x.id===d.id);return from?{...from,subtypes:[...d.subtypes,...from.subtypes.filter(s=>!d.subtypes.includes(s))]}:d;
     }),...backup.filter(d=>!existing.some(x=>x.id===d.id))];
   }
-  return {drug,catalog,prepare,parse,build,download,mergeCatalog,MAX_BYTES};
+  return {drug,catalog,prepare,parse,build,download,mergeCatalog,favoriteRefs,resolveFavorites,MAX_BYTES};
 })();

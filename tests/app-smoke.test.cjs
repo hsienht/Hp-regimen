@@ -19,3 +19,32 @@ test('cloud mode blocks legacy storage writes and hides ambiguous save',()=>{
  run('saveCurrentPreset();saveAsNewPreset();resetToDefaults()');
  assert.equal(saved.size,0);assert.equal(elements.get('saveModBtn').style.display,'none');
 });
+test('categorized selector preserves complete names and marks system/personal sources',()=>{
+ const {run,elements}=boot();
+ run("allPresets.push({...dc(allPresets[0]),id:'u:mine',name:'我的組套（10 天）',_cloud:{scope:'user'}});selectPresetCategory('all')");
+ assert.match(elements.get('presetGrid').innerHTML,/我的組套（10 天）（個人）/);
+ run("selectPresetCategory('system')");assert.doesNotMatch(elements.get('presetGrid').innerHTML,/<option[^>]*>我的組套/);
+ run("selectPresetCategory('personal')");assert.match(elements.get('presetGrid').innerHTML,/我的組套（10 天）（個人）/);
+});
+test('favorites persist per project/account and preserve the current prescription',()=>{
+ const {run,elements}=boot();
+ run("window.HP_CLOUD_CONFIG={url:'https://test.supabase.co'};window.hpFavoriteAccount='account-a';const before=JSON.stringify(R);toggleFavorite()");
+ assert.equal(run('JSON.stringify(R)===before'),true);
+ assert.equal(run('readFavorites().includes(activePresetId)'),true);
+ run("window.hpFavoriteAccount='account-b';selectPresetCategory('favorites')");
+ assert.equal(run('readFavorites().length'),0);assert.match(elements.get('presetGrid').innerHTML,/此分類尚無組套/);
+ run("window.hpFavoriteAccount='account-a';renderPresets()");assert.equal(run('readFavorites().length'),1);
+ run("window.HP_CLOUD_CONFIG.url='https://prod.supabase.co'");assert.equal(run('readFavorites().length'),0);
+});
+test('canceling a dropdown switch keeps selected regimen and unsaved prescription',()=>{
+ const {run,elements}=boot({url:'https://test.supabase.co',publishableKey:'public'});
+ run("isDirty=true;R.duration=10;const original=activePresetId;confirm=()=>false;choosePreset('pcab_dual')");
+ assert.equal(run('activePresetId===original'),true);assert.equal(run('R.duration'),10);
+ assert.match(elements.get('presetGrid').innerHTML,new RegExp(`value="${run('original')}" selected`));
+});
+test('a deleted favorite is absent and damaged browser storage does not prevent rendering',()=>{
+ const {run,elements,saved}=boot();
+ run("toggleFavorite();allPresets=allPresets.filter(p=>p.id!==activePresetId);selectPresetCategory('favorites')");
+ assert.match(elements.get('presetGrid').innerHTML,/此分類尚無組套/);
+ saved.set(run('favoriteKey()'),'broken-json');run('renderPresets()');assert.equal(run('readFavorites().length'),0);
+});

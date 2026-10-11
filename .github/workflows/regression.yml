@@ -1,0 +1,22 @@
+name: V3 regression
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JavaScript syntax
+        run: |
+          for file in js/*.js scripts/*.cjs tests/*.cjs; do
+            node --check "$file"
+          done
+      - name: Run regression tests
+        run: node --test tests/*.test.cjs
