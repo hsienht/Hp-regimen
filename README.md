@@ -8,7 +8,7 @@
 - 測試網站：https://hsienht.github.io/Hp-regimen-v3-test/
 - 保留舊版：https://hsienht.github.io/Hp-regimen-v3-test/legacy/
 
-正式 V3 已於 2026-10-06 發佈；本分支為後續 UI／帳號常用功能候選版，尚未更新正式網站。正式與測試網站使用不同 Supabase 專案。測試發佈須保留測試 repository 的 `js/config.js`，不可直接複製本機正式設定。
+正式 V3 於 2026-10-06 首次發佈；2026-10-11 已完成正式 008／009，合併 PR #2，升級 UI／帳號常用功能。正式與測試網站使用不同 Supabase 專案。測試發佈須保留測試 repository 的 `js/config.js`，不可直接複製本機正式設定。
 
 ## 功能
 
@@ -25,7 +25,7 @@
 
 HTML／CSS／JavaScript 無需編譯。`js/defaults.js` 提供出廠內容，`storage.js` 保留舊版資料相容性，`app.js` 負責編輯／預覽，`cloud.js` 負責雲端操作，`transfer.js` 負責設定備份。`config.js` 僅包含專案 URL、publishable key 與重設密碼返回網址，不可使用 secret／service_role key。
 
-SQL 操作見 [supabase/SETUP.md](supabase/SETUP.md)。001–007 已在測試與正式專案建置／驗證；常用及名稱唯一性所需 008／009 僅在測試專案完成，正式 migration 尚待授權。不要重跑既有一次性 migration。
+SQL 操作見 [supabase/SETUP.md](supabase/SETUP.md)。001–007 已在測試與正式專案建置／驗證；常用及名稱唯一性所需 008／009 已在測試與正式專案完成，正式執行結果由使用者回報成功。不要重跑既有一次性 migration。
 
 ## 自動化驗證
 
