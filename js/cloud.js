@@ -1,7 +1,7 @@
 /* Cloud persistence only accepts explicitly saved configuration templates.
    Current prescription, clinicName and unrelated UI fields are never serialized. */
 const HpCloud = (() => {
-  let client=null, session=null, role='guest', system=[], personal=[], drugRows=[], epoch=0, authEpoch=0, recovery=false, systemDraft=null;
+  let client=null, session=null, role='guest', system=[], personal=[], drugRows=[], epoch=0, authEpoch=0, recovery=false, systemDraft=null, favoriteRows=[], favoritesReady=false;
   const config=window.HP_CLOUD_CONFIG||{};
   const enabled=!!(config.url&&config.publishableKey);
   const cacheKey='hp_v3_public_'+config.url;
@@ -37,15 +37,28 @@ const HpCloud = (() => {
     clean.id=p.id;clean._cloud={scope,id:row.id,version:row.version};return clean;
   }
   function apply(){
+    window.hpFavoriteAccount=session?.user.id||null;
+    window.hpCloudFavoriteIds=session?favoriteRows.map(r=>r.system_id?'s:'+r.system_id:'u:'+r.personal_id):null;
     allPresets=[...system.map(r=>decode(r,'system')),...personal.map(r=>decode(r,'user'))];
     renderPresets();syncDirtyBtns();draw();
   }
   function draw(){
+    document.getElementById('personalTools').hidden=!session;
+    document.getElementById('adminTools').hidden=role!=='admin';
+    if(!session){document.getElementById('personalTools').open=false;document.getElementById('cloudSaveDialog').close();}
+    if(role!=='admin')document.getElementById('adminTools').open=false;
     document.getElementById('cloudLogin').hidden=!!session;
+    document.getElementById('cloudSaveEntry').hidden=!session;
+    document.getElementById('cloudFavoriteMigration').hidden=!session;
     document.getElementById('cloudLogout').hidden=!session;
     document.getElementById('cloudSaveNew').hidden=!session;
     document.getElementById('cloudSavePersonal').hidden=!session;
     document.getElementById('cloudDeletePersonal').hidden=!session;
+    const scope=allPresets.find(p=>p.id===activePresetId)?._cloud?.scope;
+    document.getElementById('cloudSavePersonal').disabled=scope!=='user';
+    document.getElementById('cloudDeletePersonal').disabled=scope!=='user';
+    document.getElementById('cloudSaveSystem').disabled=scope!=='system';
+
     document.getElementById('cloudSaveSystem').hidden=role!=='admin';
     document.getElementById('cloudNewSystem').hidden=role!=='admin';
     document.getElementById('cloudDrugManager').hidden=role!=='admin';
@@ -57,16 +70,19 @@ const HpCloud = (() => {
     document.getElementById('cloudChangePassword').hidden=!session;
     document.getElementById('cloudAccount').textContent=session?`${session.user.email} (${role})`:'訪客';
   }
+  if(enabled)window.hpSyncCloudControls=draw;
   async function refresh(){
     const request=++epoch, userId=session?.user.id;
     status('讀取雲端設定中…');
-    const [drugs,regimens,mine]=await Promise.all([
+    const [drugs,regimens,mine,favs]=await Promise.all([
       client.from('system_drugs').select('*').order('sort_order'),
       client.from('system_regimens').select('*').order('sort_order'),
-      userId?client.from('user_regimens').select('*').eq('user_id',userId).order('sort_order'):Promise.resolve({data:[]})
+      userId?client.from('user_regimens').select('*').eq('user_id',userId).order('sort_order'):Promise.resolve({data:[]}),
+      userId?client.from('user_favorites').select('*').eq('user_id',userId):Promise.resolve({data:[]})
     ]);
     const d=check(drugs),s=check(regimens),u=check(mine);
     if(request!==epoch||userId!==session?.user.id)return;
+    favoritesReady=!favs.error;favoriteRows=favs.error?[]:favs.data;
     if(!d.length||!s.length)throw Error('雲端尚未匯入出廠資料');
     const oldDrugs=DRUGS_DB;
     // A refresh must not change the meaning of the in-progress prescription.
@@ -82,16 +98,18 @@ const HpCloud = (() => {
     DRUGS_DB=nextDrugs;drugRows=d;R=current;lastSavedR=previous;system=s;personal=u;apply();
     renderPhaseSections();renderPreview();
     try{localStorage.setItem(cacheKey,JSON.stringify({drugs:DRUGS_DB,regimens:system}));}catch{ /* Online use remains available. */ }
-    status('已取得雲端最新版；本次處方修改不會自動上傳');
+    status(favoritesReady?'已取得雲端最新版；本次處方修改不會自動上傳':'組套已載入；常用功能尚未就緒，請執行 008 migration');
   }
   async function action(fn,initializing=false,onError=status){try{if(!client&&!initializing)throw Error('尚未連接雲端');await fn();}catch(e){onError(e.message||'雲端操作失敗；本次處方仍保留');}finally{if(enabled)draw();}}
-  async function save(scope,create=false){return action(async()=>{
+  async function save(scope,create=false,options=null){return action(async()=>{
     if(!session)throw Error('請先登入');if(scope==='system'&&role!=='admin')throw Error('需要 Admin 權限');
     const source=allPresets.find(x=>x.id===activePresetId)?._cloud;
     if(!create&&source?.scope!==scope)throw Error(scope==='system'?'請先載入系統組套':'請先載入我的組套');
-    const name=create?prompt('新組套名稱',R.name):R.name;if(name===null)return;
+    const inputName=options?options.name:(create?prompt('新組套名稱',R.name):R.name);if(inputName===null)return;
+    const name=inputName.trim();
+    if((scope==='user'?personal:system).some(r=>r.name.trim()===name&&(create||r.id!==source.id)))throw Error('此分類已有同名組套，請使用不同名稱');
     if(!name.trim())throw Error('請輸入組套名稱');
-    if(!confirm(scope==='system'?'將更新所有人共用的系統組套，確定儲存？':'確定將本次設定儲存為個人組套？'))return;
+    if(!options&&!confirm(scope==='system'?'將更新所有人共用的系統組套，確定儲存？':'確定將本次設定儲存為個人組套？'))return;
     const payload={name,regimen_data:template({...R,name})};
     const table=scope==='system'?'system_regimens':'user_regimens';
     if(scope==='user')payload.user_id=session.user.id;
@@ -99,9 +117,11 @@ const HpCloud = (() => {
     let result;
     if(create){if(scope==='system')payload.id='custom_'+crypto.randomUUID();result=await client.from(table).insert(payload).select();}
     else result=await client.from(table).update(payload).eq('id',source.id).eq('version',source.version).select();
+    if(result.error?.code==='23505')throw Error('此分類已有同名組套，請使用不同名稱');
     const rows=check(result);if(!rows.length)throw Error('版本已變更或權限不足，請重新載入後再儲存');
+    if(options)options.onStored(name,scope);
     await refresh();loadPreset((scope==='user'?'u:':'s:')+rows[0].id);status('組套已儲存至雲端');
-  });}
+  },false,options?.onError||status);}
   async function remove(){return action(async()=>{
     const source=allPresets.find(x=>x.id===activePresetId)?._cloud;
     if(!session||source?.scope!=='user')throw Error('請先載入我的組套');
@@ -121,10 +141,10 @@ const HpCloud = (() => {
       client.auth.onAuthStateChange((event,next)=>{
         // Do not call asynchronous Auth APIs while the SDK's event lock is held.
         if(event==='SIGNED_OUT'){
-          session=null;role='guest';personal=[];recovery=false;epoch++;authEpoch++;systemDraft=null;apply();
+          session=null;role='guest';personal=[];favoriteRows=[];favoritesReady=false;recovery=false;epoch++;authEpoch++;systemDraft=null;apply();
           document.getElementById('cloudSystemDialog').close();document.getElementById('cloudPasswordDialog').close();status('已登出');
         }else if(event==='PASSWORD_RECOVERY'&&next){
-          recovery=true;session=next;role='user';personal=[];epoch++;authEpoch++;apply();
+          recovery=true;session=next;role='user';personal=[];favoriteRows=[];favoritesReady=false;epoch++;authEpoch++;apply();
           document.getElementById('cloudLoginDialog').close();openPassword();
           setTimeout(()=>action(loadRole),0);
         }else if(event==='TOKEN_REFRESHED'&&next&&next.user.id===session?.user.id){session=next;}
@@ -132,7 +152,7 @@ const HpCloud = (() => {
           const generation=authEpoch;
           setTimeout(()=>{
             if(generation!==authEpoch||session?.user.id===next.user.id)return;
-            action(async()=>{session=next;role='user';personal=[];epoch++;authEpoch++;apply();await loadRole();await refresh();});
+            action(async()=>{session=next;role='user';personal=[];favoriteRows=[];favoritesReady=false;epoch++;authEpoch++;apply();await loadRole();await refresh();});
           },0);
         }
       });
@@ -239,20 +259,27 @@ const HpCloud = (() => {
     if(!session)throw Error('請先登入');
     const mine=personal.map(r=>decode(r,'user'));
     const shared=role==='admin'?system.map(r=>decode(r,'system')):[];
-    HpTransfer.download(HpTransfer.build(DRUGS_DB,mine,shared));status('設定備份已下載，不包含本次處方');
+    if(!favoritesReady)throw Error('常用清單尚未載入，請重新取得雲端設定後再備份');
+    const refs=allPresets.filter(p=>readFavorites().includes(p.id)).map(p=>({scope:p._cloud.scope,name:p.name}));
+    HpTransfer.download(HpTransfer.build(DRUGS_DB,mine,shared,refs));status('設定備份已下載，不包含本次處方');
   }catch(e){status(e.message);}}
   async function restoreText(raw,mode,includeSystem=false){return action(async()=>{
     if(!session)throw Error('請先登入');if(!['merge','replace'].includes(mode))throw Error('請選擇合併或取代');
     const file=HpTransfer.parse(raw);
     const source=includeSystem?[...file.personalRegimens,...(file.systemRegimens||[])]:file.personalRegimens;
-    const prepared=HpTransfer.prepare(source,file.drugs,DRUGS_DB,mode==='replace');
-    if(!prepared.length)throw Error('檔案中沒有可匯入的組套');
-    const duplicates=prepared.filter(p=>personal.some(r=>r.name===p.name)).length;
-    const notice=mode==='replace'?`取代模式：將刪除目前 ${personal.length} 個個人組套，改為檔案中的 ${prepared.length} 個。`:`合併模式：匯入 ${prepared.length-duplicates} 個新組套；保留目前同名的 ${duplicates} 個組套。`;
+    const prepared=HpTransfer.prepare(source,file.drugs,DRUGS_DB);
+    if(!prepared.length&&!file.favorites.length)throw Error('檔案中沒有可匯入的組套或常用項目');
+    if(file.favorites.length&&!favoritesReady)throw Error('請先執行 008 migration，再匯入常用清單');
+    const duplicates=prepared.filter(p=>personal.some(r=>r.name.trim()===p.name)).length;
+    const notice=!prepared.length?'此備份僅還原常用清單；保留目前所有個人組套。':mode==='replace'?`取代模式：將刪除目前 ${personal.length} 個個人組套，改為檔案中的 ${prepared.length} 個。`:`合併模式：匯入 ${prepared.length-duplicates} 個新組套；保留目前同名的 ${duplicates} 個組套。`;
     if(!confirm(notice+'\n只影響目前帳號的個人組套，不更新共用系統組套。確定繼續？'))return;
     const expected_versions=personal.map(r=>({id:r.id,version:r.version})).sort((a,b)=>a.id.localeCompare(b.id));
-    const count=check(await client.rpc('hp_import_personal',{templates:prepared,replace_existing:mode==='replace',expected_versions}));
-    await refresh();status(`已匯入 ${count} 個個人組套`);document.getElementById('cloudRestoreDialog').close();
+    const count=prepared.length?check(await client.rpc('hp_import_personal',{templates:prepared,replace_existing:mode==='replace',expected_versions})):0;
+    await refresh();
+    const refs=HpTransfer.resolveFavorites(file.favorites,allPresets);
+    try{if(refs.found.length)check(await client.rpc('hp_merge_favorites',{items:refs.found}));}
+    catch(e){throw Error(`已匯入 ${count} 個個人組套，但常用清單未完成：${e.message}。請重試合併匯入。`);}
+    await refresh();status(`已匯入 ${count} 個個人組套及 ${refs.found.length} 個常用項目`+(refs.missing.length?`；${refs.missing.length} 個常用找不到唯一對應，未加入`:''));document.getElementById('cloudRestoreDialog').close();
   });}
   async function restoreFile(){
     const input=document.getElementById('cloudRestoreFile'),file=input.files[0];
@@ -276,7 +303,58 @@ const HpCloud = (() => {
     if(!confirm('將以備份更新共用藥品名稱、圖示及囑言，並補齊缺少的規格。既有規格會保留。確定繼續？'))return;
     await persistDrugs(merged);status('已由備份更新共用藥品檔');
   });}
-  return {enabled,template,start,refresh:()=>action(refresh),save,remove,openDrugs,saveDrugs,backup,restoreText,restoreFile,restoreDrugFile,importLegacy,
+  async function toggleFavorite(){return action(async()=>{
+    if(!session||!favoritesReady)throw Error('請先登入並完成常用功能的 008 migration');
+    const p=allPresets.find(p=>p.id===activePresetId);if(!p?._cloud)throw Error('請先載入雲端組套');
+    const existing=favoriteRows.find(r=>p._cloud.scope==='system'?r.system_id===p._cloud.id:r.personal_id===p._cloud.id);
+    if(existing)check(await client.from('user_favorites').delete().eq('id',existing.id).eq('user_id',session.user.id));
+    else check(await client.rpc('hp_merge_favorites',{items:[{scope:p._cloud.scope,id:p._cloud.id}]}));
+    await refresh();status(existing?'已移除帳號常用項目':'已加入帳號常用項目');
+  });}
+  async function migrateFavorites(){return action(async()=>{
+    if(!session||!favoritesReady)throw Error('請先登入並完成 008 migration');
+    let ids=[];try{ids=JSON.parse(localStorage.getItem(favoriteKey())||'[]');}catch{}
+    if(!Array.isArray(ids))throw Error('本機常用格式不正確');
+    const entries=allPresets.filter(p=>ids.includes(p.id)&&p._cloud).map(p=>({scope:p._cloud.scope,id:p._cloud.id}));
+    if(!entries.length)throw Error('此帳號在本瀏覽器沒有可搬移的常用項目');
+    if(!confirm(`將此瀏覽器 ${entries.length} 個常用組套合併至帳號？本機資料仍保留。`))return;
+    check(await client.rpc('hp_merge_favorites',{items:entries}));await refresh();status('本瀏覽器常用清單已合併至帳號');
+  });}
+  let saveBusy=false,saveStored=false;
+  function saveFeedback(message,error=false){const node=document.getElementById('cloudSaveFeedback');node.textContent=message;node.className=error?'dialog-feedback error':'dialog-feedback';document.getElementById('cloudSaveName').setAttribute?.('aria-invalid',String(error));}
+  function saveModeChanged(){
+    if(saveBusy||saveStored)return;
+    const mode=document.getElementById('cloudSaveMode').value;
+    document.getElementById('cloudSaveScopeHint').textContent=mode.startsWith('system')?'系統組套：儲存後影響所有使用者。請確認名稱與處方內容。':'個人組套：只儲存至你的帳號。';
+    document.getElementById('cloudSaveSubmit').textContent=mode.endsWith('new')?'另存新組套':'更新目前組套';saveFeedback('');
+  }
+  function openSave(scope='user',create=true){
+    if(saveBusy)return;
+    if(!session){status('請先登入');return;}
+    const source=allPresets.find(p=>p.id===activePresetId)?._cloud;
+    const modes=[['user-new','另存為個人組套',true],['user-update','更新目前個人組套',source?.scope==='user']];
+    if(role==='admin')modes.push(['system-new','新增系統組套',true],['system-update','更新目前系統組套',source?.scope==='system']);
+    const mode=document.getElementById('cloudSaveMode');mode.innerHTML=modes.map(([value,label,allowed])=>`<option value="${value}" ${allowed?'':'disabled'}>${label}</option>`).join('');
+    const desired=scope+'-'+(create?'new':'update');mode.value=modes.some(x=>x[0]===desired&&x[2])?desired:'user-new';mode.disabled=false;
+    saveStored=false;const input=document.getElementById('cloudSaveName');input.value=R.name;input.disabled=false;
+    const submit=document.getElementById('cloudSaveSubmit');submit.hidden=false;submit.disabled=false;
+    const cancel=document.getElementById('cloudSaveCancel');cancel.textContent='取消';cancel.disabled=false;
+    saveModeChanged();document.getElementById('cloudSaveDialog').showModal();input.focus?.();
+  }
+  function cancelSave(){if(saveBusy)return false;document.getElementById('cloudSaveDialog').close();return true;}
+  async function submitSave(){
+    if(saveBusy||saveStored)return;
+    const mode=document.getElementById('cloudSaveMode'),input=document.getElementById('cloudSaveName'),submit=document.getElementById('cloudSaveSubmit'),cancel=document.getElementById('cloudSaveCancel');
+    const [scope,kind]=mode.value.split('-');if(!['user','system'].includes(scope)||!['new','update'].includes(kind)){saveFeedback('請選擇儲存方式',true);return;}
+    saveBusy=true;mode.disabled=true;input.disabled=true;submit.disabled=true;cancel.disabled=true;saveFeedback('儲存中，請稍候…');
+    await save(scope,kind==='new',{name:input.value,
+      onStored:(name,savedScope)=>{saveStored=true;saveFeedback(`已儲存「${name}」${savedScope==='system'?'（系統）':'（個人）'}。`);},
+      onError:message=>saveFeedback(saveStored?`組套已儲存，但畫面重新載入失敗：${message}。請關閉後重新取得雲端設定，勿重複另存。`:message,!saveStored)
+    });
+    saveBusy=false;cancel.disabled=false;cancel.textContent=saveStored?'完成':'取消';submit.hidden=saveStored;
+    if(!saveStored){mode.disabled=false;input.disabled=false;submit.disabled=false;input.focus?.();input.select?.();}
+  }
+  return {enabled,template,start,toggleFavorite,migrateFavorites,openSave,submitSave,cancelSave,saveModeChanged,refresh:()=>action(refresh),save,remove,openDrugs,saveDrugs,backup,restoreText,restoreFile,restoreDrugFile,importLegacy,
     openSystem,moveSystem,saveSystemOrder,deleteSystem,requestReset,openPassword,updatePassword,
     isAdmin:()=>!!session&&role==='admin',
     restore:()=>document.getElementById('cloudRestoreDialog').showModal(),
@@ -284,10 +362,10 @@ const HpCloud = (() => {
     signIn:()=>action(async()=>{
       const form=document.getElementById('cloudLoginForm');const email=form.elements.email.value,password=form.elements.password.value;
       form.elements.password.value='';
-      session=check(await client.auth.signInWithPassword({email,password})).session;role='user';personal=[];epoch++;apply();
+      session=check(await client.auth.signInWithPassword({email,password})).session;role='user';personal=[];favoriteRows=[];favoritesReady=false;epoch++;apply();
       authEpoch++;await loadRole();
       document.getElementById('cloudLoginDialog').close();await refresh();draw();
     },false,authMessage),
-    logout:()=>action(async()=>{check(await client.auth.signOut());session=null;role='guest';personal=[];recovery=false;epoch++;authEpoch++;systemDraft=null;apply();document.getElementById('cloudSystemDialog').close();document.getElementById('cloudPasswordDialog').close();status('已登出；個人組套已移除');})};
+    logout:()=>action(async()=>{check(await client.auth.signOut());session=null;role='guest';personal=[];favoriteRows=[];favoritesReady=false;recovery=false;epoch++;authEpoch++;systemDraft=null;apply();document.getElementById('cloudSystemDialog').close();document.getElementById('cloudPasswordDialog').close();status('已登出；個人組套已移除');})};
 })();
 HpCloud.start();
